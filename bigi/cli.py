@@ -329,22 +329,21 @@ def main() -> None:
         pdir = args.pipeline_dir
         if pdir.startswith("http://") or pdir.startswith("https://") or pdir.startswith("git@"):
             import subprocess
-            repo_name = pdir.rstrip("/").split("/")[-1]
-            if repo_name.endswith(".git"):
-                repo_name = repo_name[:-4]
-            local_dir = os.path.join(os.getcwd(), repo_name)
+            import tempfile
+            import atexit
+            import shutil
             
-            if not os.path.exists(local_dir):
-                print(f"Cloning remote repository '{pdir}' into './{repo_name}'...")
-                try:
-                    subprocess.run(["git", "clone", pdir, local_dir], check=True)
-                except subprocess.CalledProcessError:
-                    print(f"Error: Failed to clone repository '{pdir}'.", file=sys.stderr)
-                    sys.exit(1)
-            else:
-                print(f"Using existing local repository at './{repo_name}' for '{pdir}'")
+            temp_dir = tempfile.mkdtemp(prefix="bigi_clone_")
+            atexit.register(shutil.rmtree, temp_dir, ignore_errors=True)
             
-            args.pipeline_dir = local_dir
+            print(f"Cloning remote repository '{pdir}' into temporary workspace...")
+            try:
+                subprocess.run(["git", "clone", pdir, temp_dir], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except subprocess.CalledProcessError:
+                print(f"Error: Failed to clone repository '{pdir}'.", file=sys.stderr)
+                sys.exit(1)
+            
+            args.pipeline_dir = temp_dir
 
     if not args.command:
         parser.print_help()
