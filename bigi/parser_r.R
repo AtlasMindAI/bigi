@@ -154,7 +154,7 @@ parse_r_file <- function(file_path, base_dir = "") {
         col1 = c_row$col1,
         line2 = c_row$line2,
         col2 = c_row$col2,
-        caller = if (is.na(caller_name)) list() else caller_name
+        caller = if (is.na(caller_name)) "" else caller_name
       )
     }
   }

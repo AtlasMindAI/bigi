@@ -6,7 +6,8 @@ import re
 def build_and_embed():
     # 1. Compile Rust to Wasm
     print("Compiling Rust physics library to WebAssembly...")
-    wasm_dir = os.path.join(os.getcwd(), "physics_wasm")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    wasm_dir = os.path.join(base_dir, "physics_wasm")
     result = subprocess.run(
         ["cargo", "build", "--target", "wasm32-unknown-unknown", "--release"],
         cwd=wasm_dir,
@@ -32,7 +33,7 @@ def build_and_embed():
     print(f"Base64 string size: {len(wasm_base64) / 1024:.2f} KB")
     
     # 3. Update bigi/html_template.py
-    template_path = os.path.join(os.getcwd(), "bigi", "html_template.py")
+    template_path = os.path.join(base_dir, "bigi", "html_template.py")
     if not os.path.exists(template_path):
         print(f"Error: Template file not found at {template_path}")
         return False

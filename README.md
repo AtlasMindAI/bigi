@@ -137,3 +137,13 @@ python3 bigi-cli impact nonexistent_symbol --pipeline-dir test_pipeline
 ```
 Error: Symbol or rule 'nonexistent_symbol' not found in the index.
 ```
+
+---
+
+## Recent Updates
+
+- **Exponential DFS Traversal Fix**: Resolved a performance issue where the impact traversal explored all paths redundantly, which would cause the tool to hang on complex pipelines.
+- **Python `async def` Support**: The Python AST parser now correctly captures asynchronous functions.
+- **WASM Memory Safety**: Added array bounds checking for JS-provided link indices inside the Rust physics engine to prevent memory out-of-bounds crashes.
+- **WASM Initialization Optimization**: Replaced an O(N×E) index loop during WASM graph renderer initialization with an O(1) Map lookup.
+- **Graceful CLI Default**: Running `bigi` with no arguments now prints the help text instead of running a default analysis.

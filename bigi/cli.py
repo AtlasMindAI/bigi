@@ -148,95 +148,6 @@ def _cmd_impact(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_init_ci(args: argparse.Namespace) -> int:
-    """Execute the ``init-ci`` sub-command. Returns an exit code."""
-    workflow_dir = os.path.join(os.getcwd(), ".github", "workflows")
-    workflow_path = os.path.join(workflow_dir, "bigi-pages.yml")
-    
-    # Check if we are inside a git repository
-    if not os.path.exists(".git"):
-        print("Warning: No '.git' folder found in the current directory. Make sure you run this from the root of your git repository.", file=sys.stderr)
-        
-    os.makedirs(workflow_dir, exist_ok=True)
-    
-    workflow_content = """name: Deploy BiGI Genomics Impact Graph
-
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
-jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
-        with:
-          use-public-rspm: true
-
-      - name: Install R dependencies
-        run: |
-          Rscript -e "install.packages('jsonlite')"
-
-      - name: Install BiGI
-        run: |
-          python -m pip install --upgrade pip
-          pip install git+https://github.com/BDB-Genomics/BiGI.git
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Build Impact Graph
-        run: |
-          mkdir -p build
-          bigi analyze . --html build/index.html
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'build'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-"""
-    
-    try:
-        with open(workflow_path, "w", encoding="utf-8") as f:
-            f.write(workflow_content)
-        print(f"Successfully generated GitHub Actions workflow at '{workflow_path}'")
-        print("\nTo enable automated deployment of your genomics impact graph to GitHub Pages:")
-        print("  1. Push the generated '.github/workflows/bigi-pages.yml' file to GitHub.")
-        print("  2. In your GitHub repository settings, go to 'Pages'.")
-        print("  3. Under 'Build and deployment', set 'Source' to 'GitHub Actions'.")
-        print("  4. Every push to main/master branch will now automatically compile and publish the latest impact graph!")
-        return 0
-    except Exception as e:
-        print(f"Error generating workflow file: {e}", file=sys.stderr)
-        return 1
 
 
 def main() -> None:
@@ -280,15 +191,11 @@ def main() -> None:
         help="Path to export the interactive HTML visualization of the impact.",
     )
 
-    init_ci_parser = subparsers.add_parser(
-        "init-ci",
-        help="Initialize a GitHub Actions workflow to automatically publish the impact graph to GitHub Pages on every push.",
-    )
 
     args_list = sys.argv[1:]
     if not args_list:
-        args_list = ["analyze", ".", "--html", "visualization.html"]
-        print("No command specified. Defaulting to: bigi analyze . --html visualization.html")
+        parser.print_help()
+        sys.exit(1)
 
     args = parser.parse_args(args_list)
 
@@ -299,7 +206,6 @@ def main() -> None:
     dispatch = {
         "analyze": _cmd_analyze,
         "impact": _cmd_impact,
-        "init-ci": _cmd_init_ci,
     }
     sys.exit(dispatch[args.command](args))
 

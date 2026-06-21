@@ -153,7 +153,7 @@ pub extern "C" fn step_simulation(layout_mode: i32, width: f32, height: f32) {
                 let cy = (y[i] / GRID_CELL_SIZE).floor() as i32;
                 
                 // Unbounded spatial hashing formula
-                let cell_hash = (((cx.wrapping_mul(73856093)) ^ (cy.wrapping_mul(19349663))).abs() as usize) % HASH_SIZE;
+                let cell_hash = (((cx.wrapping_mul(73856093)) ^ (cy.wrapping_mul(19349663))).wrapping_abs() as usize) % HASH_SIZE;
                 
                 node_nexts[i] = bucket_heads[cell_hash];
                 bucket_heads[cell_hash] = i as i32;
@@ -170,7 +170,7 @@ pub extern "C" fn step_simulation(layout_mode: i32, width: f32, height: f32) {
                     for dy_cell in -1..=1 {
                         let ncx = cx + dx_cell;
                         let ncy = cy + dy_cell;
-                        let cell_hash = (((ncx.wrapping_mul(73856093)) ^ (ncy.wrapping_mul(19349663))).abs() as usize) % HASH_SIZE;
+                        let cell_hash = (((ncx.wrapping_mul(73856093)) ^ (ncy.wrapping_mul(19349663))).wrapping_abs() as usize) % HASH_SIZE;
 
                         let mut j = bucket_heads[cell_hash];
                         while j != -1 {
@@ -201,6 +201,7 @@ pub extern "C" fn step_simulation(layout_mode: i32, width: f32, height: f32) {
                 let s_idx = src[k] as usize;
                 let t_idx = tgt[k] as usize;
 
+                if s_idx >= NUM_NODES || t_idx >= NUM_NODES { continue; }
                 if active[s_idx] == 0 || active[t_idx] == 0 { continue; }
 
                 let dx = x[t_idx] - x[s_idx];

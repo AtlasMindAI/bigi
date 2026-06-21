@@ -106,7 +106,6 @@ def _dfs_downstream(
 
         visited.add(tgt_id)
         _dfs_downstream(tgt_id, depth + 1, visited, nodes, adj, results)
-        visited.remove(tgt_id)
 
 
 def _dfs_upstream_r(
@@ -144,7 +143,6 @@ def _dfs_upstream_r(
 
         visited.add(src_id)
         _dfs_upstream_r(src_id, depth + 1, visited, nodes, rev_adj, results)
-        visited.remove(src_id)
 
 
 # ---------------------------------------------------------------------------

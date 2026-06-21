@@ -147,9 +147,12 @@ def find_end_block(source: str, start_char_idx: int) -> int:
     lines = source[start_char_idx:].splitlines()
     block_count = 1
     char_offset = start_char_idx
-    for line in lines:
+    for i, line in enumerate(lines):
         stripped = line.strip()
-        openers = len(re.findall(r"\b(function|if|for|while|try|let|struct)\b", stripped))
+        if i == 0:
+            openers = len(re.findall(r"\b(if|for|while|try|let|struct)\b", stripped))
+        else:
+            openers = len(re.findall(r"\b(function|if|for|while|try|let|struct)\b", stripped))
         closers = len(re.findall(r"\b(end)\b", stripped))
         block_count += openers - closers
         char_offset += len(line) + 1

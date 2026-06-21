@@ -46,6 +46,8 @@ def parse_python_file(file_path: str, base_dir: str) -> dict:
             })
             self.generic_visit(node)
             
+        visit_AsyncFunctionDef = visit_FunctionDef
+            
     DefVisitor().visit(tree)
 
     class CallVisitor(ast.NodeVisitor):
@@ -57,6 +59,8 @@ def parse_python_file(file_path: str, base_dir: str) -> dict:
             self.current_function = node.name
             self.generic_visit(node)
             self.current_function = old_func
+            
+        visit_AsyncFunctionDef = visit_FunctionDef
             
         def visit_Call(self, node):
             func_name = ""
