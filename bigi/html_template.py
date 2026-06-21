@@ -2222,6 +2222,24 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 ctx.shadowBlur = 0;
             });
 
+            // Draw Nodes (represented as clean glassmorphic pill badges matching biological pathway standards, skip unresolved if hidden)
+            nodes.forEach(n => {
+                if (hideUnresolved && n.type === 'unresolved') return;
+                if (isFocusMode && !activePaths.has(n.id)) return;
+
+                // Collapsed script group visual reduction
+                const isColGroup = n.file && collapsedGroups.has(n.file);
+                if (isColGroup) {
+                    const primary = groups[n.file] && (groups[n.file].find(gn => !isFocusMode || activePaths.has(gn.id)) || groups[n.file][0]);
+                    if (primary !== n) return; // Skip drawing secondary collapsed nodes
+                }
+
+                // Viewport culling check: skip node if it is off-screen
+                if (n.x < minSimX || n.x > maxSimX || n.y < minSimY || n.y > maxSimY) return;
+
+                const isSelected = selectedNode && selectedNode.id === n.id;
+                const isHovered = hoveredNode && hoveredNode.id === n.id;
+
                 const matchesSearch = nodeMatchesSearch(n);
                 const isPathActive = pathStartNode && pathEndNode && pathTracingNodes.has(pathStartNode.id) && pathTracingNodes.has(pathEndNode.id);
                 
