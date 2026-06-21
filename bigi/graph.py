@@ -340,25 +340,31 @@ def build_graph(pipeline_dir: str) -> dict:
             d = target_defs[0]
             target_id = f"function:{d['name']}@{d['file']}"
             for cid in caller_ids:
-                label = "executed by" if cid.startswith("rule:") else "called by"
+                is_rule = cid.startswith("rule:")
+                label = f"{'executed' if is_rule else 'called'} on L{c.get('line1', '?')}"
+                detail = f"Invoked at line {c.get('line1', '?')} in {c['file']}"
                 edges.append({"source": target_id, "target": cid,
-                               "type": "r_call", "confidence": "HIGH", "label": label})
+                               "type": "r_call", "confidence": "HIGH", "label": label, "detail": detail})
         elif len(target_defs) > 1:
             for d in target_defs:
                 target_id = f"function:{d['name']}@{d['file']}"
                 for cid in caller_ids:
-                    label = "executed by" if cid.startswith("rule:") else "called by"
+                    is_rule = cid.startswith("rule:")
+                    label = f"{'executed' if is_rule else 'called'} on L{c.get('line1', '?')}"
+                    detail = f"Multiple definitions exist for '{call_name}'. One is invoked at line {c.get('line1', '?')} in {c['file']}."
                     edges.append({"source": target_id, "target": cid,
                                    "type": "r_call", "confidence": "AMBIGUOUS",
-                                   "detail": f"Multiple definitions of '{call_name}' exist",
+                                   "detail": detail,
                                    "label": label})
         else:
             unresolved_id = f"function:{call_name}@UNRESOLVED"
             _add_node(nodes, unresolved_id, type="unresolved", name=call_name, file="UNRESOLVED")
             for cid in caller_ids:
-                label = "executed by" if cid.startswith("rule:") else "called by"
+                is_rule = cid.startswith("rule:")
+                label = f"{'executed' if is_rule else 'called'} on L{c.get('line1', '?')}"
+                detail = f"Missing definition for '{call_name}', which is invoked at line {c.get('line1', '?')} in {c['file']}."
                 edges.append({"source": unresolved_id, "target": cid,
-                               "type": "r_call", "confidence": "UNRESOLVED", "label": label})
+                               "type": "r_call", "confidence": "UNRESOLVED", "label": label, "detail": detail})
 
     # Extract Git modified status to flag modified nodes in the visualization
     modified_files = set()
