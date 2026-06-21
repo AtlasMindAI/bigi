@@ -391,11 +391,54 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
             gap: 10px;
             z-index: 10;
         }
+
+        #path-tracing-hud {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            align-items: center;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(99, 102, 241, 0.45);
+            border-radius: 20px;
+            padding: 6px 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            backdrop-filter: blur(12px);
+            z-index: 20;
+            font-size: 0.8rem;
+            pointer-events: auto;
+            animation: slideDown 0.3s ease-out;
+            color: #cbd5e1;
+        }
+
+        @keyframes slideDown {
+            from { transform: translate(-50%, -20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
     </style>
 </head>
 <body>
     <div id="canvas-container">
         <canvas id="graphCanvas"></canvas>
+    </div>
+
+    <!-- Path Tracing HUD Overlay -->
+    <div id="path-tracing-hud">
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.9rem;">🏁</span>
+            <span style="color: var(--text-muted); font-size: 0.72rem;">Start:</span>
+            <span id="path-start-name" style="color: #a5b4fc; font-weight: 600; font-family: monospace;">-</span>
+        </div>
+        <div style="color: rgba(255,255,255,0.25); font-weight: 300;">🡒</div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.9rem;">🎯</span>
+            <span style="color: var(--text-muted); font-size: 0.72rem;">End:</span>
+            <span id="path-end-name" style="color: #f472b6; font-weight: 600; font-family: monospace;">-</span>
+        </div>
+        <div style="width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 4px;"></div>
+        <button class="btn" style="padding: 2px 8px; font-size: 0.65rem; background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.3); color: #fda4af;" onclick="clearPathTracing()">Clear</button>
     </div>
 
     <!-- Controls -->
@@ -584,6 +627,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         let gitImpactNodes = new Set();
         let hasGitChanges = false;
         let gitImpactOnly = false;
+
+        // Interactive Path Tracing State
+        let pathStartNode = null;
+        let pathEndNode = null;
+        let pathTracingNodes = new Set();
+        let pathTracingLinks = new Set();
 
         function calculateGitImpact() {
             const modifiedIds = [];
@@ -1156,6 +1205,16 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                         ${node.git_modified ? `<span class="badge" style="background: rgba(249, 115, 22, 0.2); color: #fdba74; border: 1px solid rgba(249, 115, 22, 0.4); font-weight: bold; font-size: 0.65rem;">📝 GIT MODIFIED</span>` : ""}
                     </div>
                     <span class="badge ${node.type === 'rule' ? 'badge-rule' : node.type === 'unresolved' ? 'badge-unres' : 'badge-func'}" style="margin-top:5px; display:inline-block;">${node.type.toUpperCase()}</span>
+                    
+                    <!-- Path Tracing Controls -->
+                    <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn" style="padding: 4px 8px; font-size: 0.68rem; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); color: #c7d2fe; display: flex; align-items: center; gap: 4px; border-radius: 6px;" onclick="setPathStart('${node.id}')">
+                            🏁 Set as Start
+                        </button>
+                        <button class="btn" style="padding: 4px 8px; font-size: 0.68rem; background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.35); color: #fbcfe8; display: flex; align-items: center; gap: 4px; border-radius: 6px;" onclick="setPathEnd('${node.id}')">
+                            🎯 Set as End
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="tabs">
@@ -1271,6 +1330,123 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 transform.y = height / 2 - node.y * transform.k;
             }
         };
+
+        window.setPathStart = function(id) {
+            const node = nodeIdMap[id];
+            if (node) {
+                pathStartNode = node;
+                document.getElementById("path-start-name").textContent = node.name;
+                updatePathTracingHUD();
+            }
+        };
+
+        window.setPathEnd = function(id) {
+            const node = nodeIdMap[id];
+            if (node) {
+                pathEndNode = node;
+                document.getElementById("path-end-name").textContent = node.name;
+                updatePathTracingHUD();
+            }
+        };
+
+        window.clearPathTracing = function() {
+            pathStartNode = null;
+            pathEndNode = null;
+            pathTracingNodes.clear();
+            pathTracingLinks.clear();
+            document.getElementById("path-tracing-hud").style.display = "none";
+            isSimulating = true; // Wake up physics
+        };
+
+        function updatePathTracingHUD() {
+            const hud = document.getElementById("path-tracing-hud");
+            hud.style.display = "flex";
+            
+            if (pathStartNode && pathEndNode) {
+                computePathTracing();
+                
+                const startLabel = document.getElementById("path-start-name");
+                const endLabel = document.getElementById("path-end-name");
+                
+                let hasPath = pathTracingNodes.has(pathStartNode.id) && pathTracingNodes.has(pathEndNode.id) && pathTracingNodes.size >= 2;
+                if (pathStartNode.id === pathEndNode.id) hasPath = true;
+                
+                if (!hasPath) {
+                    hud.style.borderColor = "rgba(244, 63, 94, 0.6)";
+                    endLabel.style.color = "#f43f5e";
+                    endLabel.textContent = pathEndNode.name + " (⚠️ No path)";
+                } else {
+                    hud.style.borderColor = "rgba(99, 102, 241, 0.45)";
+                    endLabel.style.color = "#f472b6";
+                    endLabel.textContent = pathEndNode.name;
+                }
+            }
+            isSimulating = true; // Wake up physics to layout/render
+        }
+
+        function computePathTracing() {
+            pathTracingNodes.clear();
+            pathTracingLinks.clear();
+            
+            if (!pathStartNode || !pathEndNode) return;
+            
+            // 1. Forward traversal from StartNode
+            const reachableFromStart = new Set();
+            const queueStart = [pathStartNode.id];
+            reachableFromStart.add(pathStartNode.id);
+            
+            // Create adjacency lists
+            const adjForward = {};
+            const adjBackward = {};
+            links.forEach(l => {
+                adjForward[l.source] = adjForward[l.source] || [];
+                adjForward[l.source].push(l.target);
+                
+                adjBackward[l.target] = adjBackward[l.target] || [];
+                adjBackward[l.target].push(l.source);
+            });
+            
+            while (queueStart.length > 0) {
+                const curr = queueStart.shift();
+                const neighbors = adjForward[curr] || [];
+                neighbors.forEach(nxt => {
+                    if (!reachableFromStart.has(nxt)) {
+                        reachableFromStart.add(nxt);
+                        queueStart.push(nxt);
+                    }
+                });
+            }
+            
+            // 2. Backward traversal from EndNode (using reverse edges)
+            const canReachEnd = new Set();
+            const queueEnd = [pathEndNode.id];
+            canReachEnd.add(pathEndNode.id);
+            
+            while (queueEnd.length > 0) {
+                const curr = queueEnd.shift();
+                const neighbors = adjBackward[curr] || [];
+                neighbors.forEach(nxt => {
+                    if (!canReachEnd.has(nxt)) {
+                        canReachEnd.add(nxt);
+                        queueEnd.push(nxt);
+                    }
+                });
+            }
+            
+            // 3. Find intersection of reachable sets
+            nodes.forEach(n => {
+                if (reachableFromStart.has(n.id) && canReachEnd.has(n.id)) {
+                    pathTracingNodes.add(n.id);
+                }
+            });
+            
+            // 4. Find links connecting these nodes
+            links.forEach(l => {
+                if (pathTracingNodes.has(l.source) && pathTracingNodes.has(l.target)) {
+                    pathTracingLinks.add(l);
+                }
+            });
+        }
 
         // Graph Simulation Loop
         function runSimulation() {
@@ -1843,12 +2019,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 if (!sVisible && !tVisible) return;
 
                 const matchesSearch = nodeMatchesSearch(s) || nodeMatchesSearch(t);
-                const isLinkHighlighted = matchesSearch && (!selectedNode || activeLinks.has(l)) && (!gitImpactOnly || (gitImpactNodes.has(l.source) && gitImpactNodes.has(l.target)));
-                const edgeOpacity = isLinkHighlighted ? 1.0 : 0.04;
+                const isPathActive = pathStartNode && pathEndNode && pathTracingNodes.has(pathStartNode.id) && pathTracingNodes.has(pathEndNode.id);
+                
+                let isLinkHighlighted;
+                if (isPathActive) {
+                    isLinkHighlighted = pathTracingLinks.has(l);
+                } else {
+                    isLinkHighlighted = matchesSearch && (!selectedNode || activeLinks.has(l)) && (!gitImpactOnly || (gitImpactNodes.has(l.source) && gitImpactNodes.has(l.target)));
+                }
+                
+                const edgeOpacity = isLinkHighlighted ? 1.0 : 0.015;
 
                 const isLinkSelected = selectedNode && (selectedNode.id === s.id || selectedNode.id === t.id);
                 
-                if (transform.k < 0.22 && !isLinkSelected) {
+                if (transform.k < 0.22 && !isLinkSelected && !isPathActive) {
                     // Straight lines without gradients/curves when zoomed out for extreme rendering speedups
                     ctx.beginPath();
                     ctx.moveTo(s.x, s.y);
@@ -1876,6 +2060,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 let sColor = s.type === 'rule' ? '#6366f1' : s.type === 'unresolved' ? '#f43f5e' : '#10b981';
                 let tColor = t.type === 'rule' ? '#6366f1' : t.type === 'unresolved' ? '#f43f5e' : '#10b981';
                 
+                if (isPathActive && pathTracingLinks.has(l)) {
+                    sColor = '#a5b4fc'; // Start path is purple
+                    tColor = '#f472b6'; // End path is pink
+                }
+                
                 ctx.beginPath();
                 ctx.moveTo(s.x, s.y);
                 ctx.quadraticCurveTo(qx, qy, t.x, t.y);
@@ -1883,6 +2072,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 // Edge gradient color blending (represents information flow direction)
                 let grad = ctx.createLinearGradient(s.x, s.y, t.x, t.y);
                 let alpha = isLinkSelected ? 0.75 : 0.16;
+                if (isPathActive && pathTracingLinks.has(l)) {
+                    alpha = 0.85; // High contrast highlight for paths
+                }
                 
                 // If change propagation risk is active, color downstream edges amber/orange
                 if (hasGitChanges && l.source in gitRiskScores) {
@@ -1979,14 +2171,21 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 if (!sVisible && !tVisible) return;
 
                 const matchesSearch = !search || s.name.toLowerCase().includes(search) || t.name.toLowerCase().includes(search);
-                const isLinkHighlighted = matchesSearch && (!selectedNode || activeLinks.has(l));
+                const isPathActive = pathStartNode && pathEndNode && pathTracingNodes.has(pathStartNode.id) && pathTracingNodes.has(pathEndNode.id);
+                
+                let isLinkHighlighted;
+                if (isPathActive) {
+                    isLinkHighlighted = pathTracingLinks.has(l);
+                } else {
+                    isLinkHighlighted = matchesSearch && (!selectedNode || activeLinks.has(l));
+                }
                 
                 // Prune pulse indicators on non-highlighted links for clean presentation
                 if (!isLinkHighlighted) return;
 
                 // Skip pulse animation when zoomed out to conserve GPU/CPU rendering resources
                 const isLinkSelected = selectedNode && (selectedNode.id === s.id || selectedNode.id === t.id);
-                if (transform.k < 0.22 && !isLinkSelected) return;
+                if (transform.k < 0.22 && !isLinkSelected && !isPathActive) return;
 
                 let dx = t.x - s.x;
                 let dy = t.y - s.y;
@@ -2007,7 +2206,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 const py = (1-progress)*(1-progress)*s.y + 2*(1-progress)*progress*qy + progress*progress*t.y;
 
                 let pulseColor = "rgba(255, 255, 255, 0.4)";
-                if (selectedNode && (selectedNode.id === s.id || selectedNode.id === t.id)) {
+                if (isPathActive && pathTracingLinks.has(l)) {
+                    pulseColor = "#f472b6"; // Hot pink flow indicator for active path tracing
+                } else if (selectedNode && (selectedNode.id === s.id || selectedNode.id === t.id)) {
                     pulseColor = l.confidence === 'HIGH' ? "#10b981" : 
                                  l.confidence === 'AMBIGUOUS' ? "#6366f1" : "#f43f5e";
                 }
@@ -2021,33 +2222,33 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
                 ctx.shadowBlur = 0;
             });
 
-            // Draw Nodes (represented as clean glassmorphic pill badges matching biological pathway standards, skip unresolved if hidden)
-            nodes.forEach(n => {
-                if (hideUnresolved && n.type === 'unresolved') return;
-                if (isFocusMode && !activePaths.has(n.id)) return;
-
-                // Collapsed script group visual reduction
-                const isColGroup = n.file && collapsedGroups.has(n.file);
-                if (isColGroup) {
-                    const primary = groups[n.file] && (groups[n.file].find(gn => !isFocusMode || activePaths.has(gn.id)) || groups[n.file][0]);
-                    if (primary !== n) return; // Skip drawing secondary collapsed nodes
-                }
-
-                // Viewport culling check: skip node if it is off-screen
-                if (n.x < minSimX || n.x > maxSimX || n.y < minSimY || n.y > maxSimY) return;
-
-                const isSelected = selectedNode && selectedNode.id === n.id;
-                const isHovered = hoveredNode && hoveredNode.id === n.id;
-
                 const matchesSearch = nodeMatchesSearch(n);
-                const isHighlighted = matchesSearch && (!selectedNode || activePaths.has(n.id)) && (!gitImpactOnly || gitImpactNodes.has(n.id));
-                const nodeOpacity = isHighlighted ? 1.0 : 0.04;
+                const isPathActive = pathStartNode && pathEndNode && pathTracingNodes.has(pathStartNode.id) && pathTracingNodes.has(pathEndNode.id);
+                
+                let isHighlighted;
+                if (isPathActive) {
+                    isHighlighted = pathTracingNodes.has(n.id);
+                } else {
+                    isHighlighted = matchesSearch && (!selectedNode || activePaths.has(n.id)) && (!gitImpactOnly || gitImpactNodes.has(n.id));
+                }
+                
+                const nodeOpacity = isHighlighted ? 1.0 : 0.03;
 
                 let baseColor = "#10b981"; // FUNC
                 if (n.type === "rule") {
                     baseColor = "#6366f1"; // RULE
                 } else if (n.type === "unresolved") {
                     baseColor = "#f43f5e"; // UNRES
+                }
+                
+                if (isPathActive) {
+                    if (n.id === pathStartNode.id) {
+                        baseColor = "#a5b4fc"; // Purple start node
+                    } else if (n.id === pathEndNode.id) {
+                        baseColor = "#f472b6"; // Pink end node
+                    } else if (pathTracingNodes.has(n.id)) {
+                        baseColor = "#818cf8"; // Lavender path connection node
+                    }
                 }
 
                 const w = n.width;
