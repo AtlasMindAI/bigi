@@ -29,6 +29,3 @@ include = ["bigi*"]
 
 [tool.setuptools.package-data]
 "*" = ["*.html", "*.R"]
-
-[tool.vercel]
-entrypoint = "app:app"
