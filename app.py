@@ -44,6 +44,3 @@ def index():
     </html>
     """, mimetype='text/html')
 
-# Vercel serverless entrypoint
-def handler(environ, start_response):
-    return app(environ, start_response)
