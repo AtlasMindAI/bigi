@@ -21,9 +21,13 @@ def catch_all(path):
     with tempfile.TemporaryDirectory() as tmpdir:
         html_out = os.path.join(tmpdir, "out.html")
         try:
-            # Run BiGI analyze command
-            cmd = ["bigi", "analyze", repo_url, "--html", html_out]
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            import sys
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            env = os.environ.copy()
+            env["PYTHONPATH"] = root_dir + os.pathsep + env.get("PYTHONPATH", "")
+            
+            cmd = [sys.executable, "-m", "bigi.cli", "analyze", repo_url, "--html", html_out]
+            subprocess.run(cmd, check=True, capture_output=True, text=True, env=env)
             
             with open(html_out, "r", encoding="utf-8") as f:
                 html_content = f.read()
