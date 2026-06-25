@@ -575,6 +575,20 @@
                         Limit the graph to the neighborhood around the selected node.
                     </div>
                 </div>
+                <div class="mt-2 rounded-xl border border-white/10 bg-black/20 p-3">
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <span class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Cluster By</span>
+                        <span class="text-[0.6rem] text-slate-500">Collapse mode</span>
+                    </div>
+                    <select id="cluster-mode-select" class="w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 font-mono text-[0.72rem] text-slate-100 outline-none focus:border-indigo-400/40">
+                        <option value="file" selected>File</option>
+                        <option value="folder">Folder</option>
+                        <option value="package">Package</option>
+                    </select>
+                    <div class="mt-2 text-[0.65rem] leading-[1.4] text-slate-500">
+                        Collapse related nodes by file, folder, or package root.
+                    </div>
+                </div>
                 <div class="legend-item mt-2 hidden" id="git-filter-container">
                     <input type="checkbox" id="git-impact-cb" class="mr-2 cursor-pointer">
                     <label for="git-impact-cb" class="flex cursor-pointer items-center gap-1 text-sm font-medium text-amber-300 select-none">Git Changes Impact</label>
@@ -875,6 +889,7 @@
         let mouseSim = { x: null, y: null };
         let layoutMode = 'swimlane'; // 'swimlane' or 'free'
         let focusDepthLimit = 2;
+        let groupingMode = 'file';
 
         // Git Changes Impact Tracker State
         let gitRiskScores = {}; // Map of node.id -> shortest path distance from modified node (0 is modified, 1 is direct downstream, etc.)
@@ -887,6 +902,7 @@
         let pathEndNode = null;
         let pathTracingNodes = new Set();
         let pathTracingLinks = new Set();
+        let pathTracingOrderedLinks = [];
         let pathTracingFound = false;
 
         function calculateGitImpact() {
@@ -987,6 +1003,57 @@
             }
         }
 
+        function applyGroupingMode(modeValue) {
+            groupingMode = modeValue || "file";
+            collapsedGroups.clear();
+            if (selectedNode) {
+                computeActivePaths(selectedNode, getFocusDepthLimit());
+            }
+            populateNodeList(document.getElementById("search-input").value);
+            draw();
+        }
+
+        function getClusterKey(node) {
+            if (!node || !node.file) return null;
+            const parts = node.file.split(/[\\/]+/).filter(Boolean);
+            if (groupingMode === "folder") {
+                return parts.length > 1 ? parts.slice(0, -1).join("/") : node.file;
+            }
+            if (groupingMode === "package") {
+                return parts.length > 0 ? parts[0] : node.file;
+            }
+            return node.file;
+        }
+
+        function getClusterLabel(node) {
+            if (!node || !node.file) return "";
+            const parts = node.file.split(/[\\/]+/).filter(Boolean);
+            if (groupingMode === "folder") {
+                return parts.length > 1 ? parts.slice(0, -1).join("/") : node.file;
+            }
+            if (groupingMode === "package") {
+                return parts.length > 0 ? parts[0] : node.file;
+            }
+            return node.file;
+        }
+
+        function buildClusterGroups() {
+            const groups = {};
+            const labels = {};
+            nodes.forEach(n => {
+                if (n.type === 'function' && n.file) {
+                    const key = getClusterKey(n);
+                    if (!key) return;
+                    groups[key] = groups[key] || [];
+                    groups[key].push(n);
+                    if (!labels[key]) {
+                        labels[key] = getClusterLabel(n);
+                    }
+                }
+            });
+            return { groups, labels };
+        }
+
         // Populate Git Risk / Blast Radius Dashboard
         function populateGitDashboard() {
             const entrypointList = document.getElementById("git-entrypoints-list");
@@ -1044,24 +1111,24 @@
                 impactedNodes.forEach(n => {
                     const dist = gitRiskScores[n.id];
                     let degreeText = `${dist}th Degree`;
-                    let badgeColor = "rgba(234, 179, 8, 0.2)";
-                    let textColor = "#fde047";
                     if (dist === 1) {
                         degreeText = "1st Degree Direct";
-                        badgeColor = "rgba(249, 115, 22, 0.2)";
-                        textColor = "#fdba74";
                     } else if (dist === 2) {
                         degreeText = "2nd Degree Secondary";
-                        badgeColor = "rgba(234, 179, 8, 0.15)";
-                        textColor = "#fef08a";
                     }
+
+                    const badgeClasses = dist === 1
+                        ? "shrink-0 rounded-md bg-orange-500/15 px-1.5 py-0.5 text-[0.55rem] font-bold text-orange-300"
+                        : dist === 2
+                            ? "shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[0.55rem] font-bold text-amber-200"
+                            : "shrink-0 rounded-md bg-rose-500/20 px-1.5 py-0.5 text-[0.55rem] font-bold text-rose-300";
 
                     const item = document.createElement("div");
                     item.className = "git-item mb-1.5 cursor-pointer rounded-xl border border-amber-400/15 bg-amber-500/5 p-3 transition hover:border-amber-300/30 hover:bg-amber-500/10";
                     item.innerHTML = `
                         <div class="mb-1 flex items-center justify-between gap-2">
                             <span class="min-w-0 truncate text-[0.72rem] font-semibold text-slate-200">${n.name}</span>
-                            <span class="shrink-0 rounded-md px-1.5 py-0.5 text-[0.55rem] font-bold" style="background:${badgeColor}; color:${textColor};">${degreeText}</span>
+                            <span class="${badgeClasses}">${degreeText}</span>
                         </div>
                         <div class="truncate text-[0.6rem] text-slate-400">${n.file || "No file info"}</div>
                     `;
@@ -1930,6 +1997,7 @@
             pathEndNode = null;
             pathTracingNodes.clear();
             pathTracingLinks.clear();
+            pathTracingOrderedLinks = [];
             pathTracingFound = false;
             document.getElementById("path-tracing-hud").style.display = "none";
             isSimulating = true; // Wake up physics
@@ -1964,6 +2032,7 @@
         function computePathTracing() {
             pathTracingNodes.clear();
             pathTracingLinks.clear();
+            pathTracingOrderedLinks = [];
             pathTracingFound = false;
             
             if (!pathStartNode || !pathEndNode) return;
@@ -2004,8 +2073,39 @@
                 if (!entry) break;
                 pathTracingNodes.add(entry.prev);
                 pathTracingLinks.add(entry.link);
+                pathTracingOrderedLinks.push(entry.link);
                 curr = entry.prev;
             }
+            pathTracingOrderedLinks.reverse();
+        }
+
+        function drawShortestPathOverlay(minSimX, maxSimX, minSimY, maxSimY) {
+            if (!pathTracingFound || pathTracingOrderedLinks.length === 0) return;
+
+            ctx.save();
+            ctx.lineJoin = "round";
+            ctx.lineCap = "round";
+            ctx.shadowColor = "rgba(244, 114, 182, 0.7)";
+            ctx.shadowBlur = 12;
+
+            pathTracingOrderedLinks.forEach((l, idx) => {
+                const s = nodeIdMap[l.source];
+                const t = nodeIdMap[l.target];
+                if (!s || !t) return;
+
+                const sVisible = s.x >= minSimX && s.x <= maxSimX && s.y >= minSimY && s.y <= maxSimY;
+                const tVisible = t.x >= minSimX && t.x <= maxSimX && t.y >= minSimY && t.y <= maxSimY;
+                if (!sVisible && !tVisible) return;
+
+                ctx.beginPath();
+                ctx.moveTo(s.x, s.y);
+                ctx.lineTo(t.x, t.y);
+                ctx.strokeStyle = idx === 0 ? "rgba(165, 180, 252, 0.9)" : "rgba(244, 114, 182, 0.9)";
+                ctx.lineWidth = idx === pathTracingOrderedLinks.length - 1 ? 3.5 : 2.6;
+                ctx.stroke();
+            });
+
+            ctx.restore();
         }
 
         // Graph Simulation Loop
@@ -2015,19 +2115,13 @@
             const isFocusMode = focusModeCb && focusModeCb.checked && selectedNode;
             
             // Script groups grouping calculations
-            const groups = {};
-            nodes.forEach(n => {
-                if (n.type === 'function' && n.file) {
-                    groups[n.file] = groups[n.file] || [];
-                    groups[n.file].push(n);
-                }
-            });
+            const { groups } = buildClusterGroups();
 
             // Group collapsing layout handler
-            Object.entries(groups).forEach(([filename, groupNodes]) => {
+            Object.entries(groups).forEach(([clusterKey, groupNodes]) => {
                 if (groupNodes.length < 2) return;
                 
-                if (collapsedGroups.has(filename)) {
+                if (collapsedGroups.has(clusterKey)) {
                     let avgX = 0, avgY = 0, activeCount = 0;
                     groupNodes.forEach(gn => {
                         if (isFocusMode && !selectedNodeActivePaths.has(gn.id)) return;
@@ -2080,8 +2174,9 @@
                 const isHovered = hoveredNode && hoveredNode.id === n.id;
                 
                 // Keep base sizes unless collapsed
-                const isColGroup = n.file && collapsedGroups.has(n.file);
-                const isPrimary = isColGroup && groups[n.file] && (groups[n.file].find(gn => !isFocusMode || selectedNodeActivePaths.has(gn.id)) || groups[n.file][0]) === n;
+                const clusterKey = getClusterKey(n);
+                const isColGroup = clusterKey && collapsedGroups.has(clusterKey);
+                const isPrimary = isColGroup && groups[clusterKey] && (groups[clusterKey].find(gn => !isFocusMode || selectedNodeActivePaths.has(gn.id)) || groups[clusterKey][0]) === n;
                 
                 if (isColGroup && !isPrimary) {
                     // Do not resize if collapsed secondary node
@@ -2489,22 +2584,15 @@
             const search = document.getElementById("search-input").value.trim().toLowerCase();
             const focusModeCb = document.getElementById("focus-mode-cb");
             const isFocusMode = focusModeCb && focusModeCb.checked && selectedNode;
+            const { groups, labels } = buildClusterGroups();
 
             // 1. Build active paths sets (computed in selectNode)
             const activePaths = selectedNodeActivePaths;
             const activeLinks = selectedNodeActiveLinks;
 
             // 2. Draw script background grouping cards (Visual Script Clustering)
-            const groups = {};
-            nodes.forEach(n => {
-                if (n.type === 'function' && n.file) {
-                    groups[n.file] = groups[n.file] || [];
-                    groups[n.file].push(n);
-                }
-            });
-            
             ctx.save();
-            Object.entries(groups).forEach(([filename, groupNodes]) => {
+            Object.entries(groups).forEach(([clusterKey, groupNodes]) => {
                 if (groupNodes.length < 2) return;
                 
                 let minX = Infinity, maxX = -Infinity;
@@ -2523,7 +2611,8 @@
                 if (maxX < minSimX || minX > maxSimX || maxY < minSimY || minY > maxSimY) return;
                 
                 // Hide or dim visual clustering cards if they do not match search query
-                const matchesSearch = !search || filename.toLowerCase().includes(search) || groupNodes.some(n => n.name.toLowerCase().includes(search));
+                const clusterLabel = labels[clusterKey] || clusterKey;
+                const matchesSearch = !search || clusterLabel.toLowerCase().includes(search) || groupNodes.some(n => n.name.toLowerCase().includes(search));
                 const hasGitActiveNodes = !gitImpactOnly || groupNodes.some(n => gitImpactNodes.has(n.id));
                 const cardOpacity = matchesSearch && hasGitActiveNodes ? 1.0 : 0.05;
 
@@ -2533,7 +2622,7 @@
                 const rw = (maxX - minX) + pad*2;
                 const rh = (maxY - minY) + pad*2 + 12;
                 
-                const isCollapsed = collapsedGroups.has(filename);
+                const isCollapsed = collapsedGroups.has(clusterKey);
                 if (isCollapsed) {
                     // Draw collapsed folder card
                     ctx.fillStyle = `rgba(15, 23, 42, ${0.6 * cardOpacity})`;
@@ -2567,7 +2656,7 @@
                 ctx.font = isCollapsed ? "bold italic 7.5px sans-serif" : "italic 7px sans-serif";
                 ctx.textAlign = "left";
                 ctx.textBaseline = "top";
-                ctx.fillText((isCollapsed ? "📂 [Collapsed Folder] " : "") + filename, rx + 8, ry + 6);
+                ctx.fillText((isCollapsed ? "📂 [Collapsed] " : "") + clusterLabel, rx + 8, ry + 6);
             });
             ctx.restore();
 
@@ -2585,7 +2674,7 @@
                 if (!sVisible && !tVisible) return;
 
                 const matchesSearch = nodeMatchesSearch(s) || nodeMatchesSearch(t);
-                const isPathActive = pathStartNode && pathEndNode && pathTracingNodes.has(pathStartNode.id) && pathTracingNodes.has(pathEndNode.id);
+                const isPathActive = pathTracingFound;
                 
                 let isLinkHighlighted;
                 if (isPathActive) {
@@ -2722,6 +2811,8 @@
                 }
             });
 
+            drawShortestPathOverlay(minSimX, maxSimX, minSimY, maxSimY);
+
             // Draw animated pulse indicators gliding along curved edges (skip unresolved if hidden)
             const pulseTime = Date.now() * 0.0012;
             links.forEach(l => {
@@ -2737,7 +2828,7 @@
                 if (!sVisible && !tVisible) return;
 
                 const matchesSearch = !search || s.name.toLowerCase().includes(search) || t.name.toLowerCase().includes(search);
-                const isPathActive = pathStartNode && pathEndNode && pathTracingNodes.has(pathStartNode.id) && pathTracingNodes.has(pathEndNode.id);
+                const isPathActive = pathTracingFound;
                 
                 let isLinkHighlighted;
                 if (isPathActive) {
@@ -2796,9 +2887,10 @@
                 if (isFocusMode && !activePaths.has(n.id)) return;
 
                 // Collapsed script group visual reduction
-                const isColGroup = n.file && collapsedGroups.has(n.file);
+                const clusterKey = getClusterKey(n);
+                const isColGroup = clusterKey && collapsedGroups.has(clusterKey);
                 if (isColGroup) {
-                    const primary = groups[n.file] && (groups[n.file].find(gn => !isFocusMode || activePaths.has(gn.id)) || groups[n.file][0]);
+                    const primary = groups[clusterKey] && (groups[clusterKey].find(gn => !isFocusMode || activePaths.has(gn.id)) || groups[clusterKey][0]);
                     if (primary !== n) return; // Skip drawing secondary collapsed nodes
                 }
 
@@ -2809,7 +2901,7 @@
                 const isHovered = hoveredNode && hoveredNode.id === n.id;
 
                 const matchesSearch = nodeMatchesSearch(n);
-                const isPathActive = pathStartNode && pathEndNode && pathTracingNodes.has(pathStartNode.id) && pathTracingNodes.has(pathEndNode.id);
+                const isPathActive = pathTracingFound;
                 
                 let isHighlighted;
                 if (isPathActive) {
@@ -2988,7 +3080,7 @@
                 ctx.textBaseline = "middle";
                 
                 // Show folder name if group collapsed
-                const displayName = isColGroup ? `📂 [Folder] ${n.file}` : n.name;
+                const displayName = isColGroup ? `📂 [${groupingMode}] ${getClusterLabel(n)}` : n.name;
                 ctx.fillText(displayName, n.x, n.y);
             });
 
@@ -3115,19 +3207,12 @@
             
             // Check if clicked inside a group card bounds
             let clickedGroup = null;
-            
-            const localGroups = {};
-            nodes.forEach(n => {
-                if (n.type === 'function' && n.file) {
-                    localGroups[n.file] = localGroups[n.file] || [];
-                    localGroups[n.file].push(n);
-                }
-            });
+            const { groups: localGroups } = buildClusterGroups();
             
             const focusModeCb = document.getElementById("focus-mode-cb");
             const isFocusMode = focusModeCb && focusModeCb.checked && selectedNode;
             
-            Object.entries(localGroups).forEach(([filename, groupNodes]) => {
+            Object.entries(localGroups).forEach(([clusterKey, groupNodes]) => {
                 if (groupNodes.length < 2) return;
                 let minX = Infinity, maxX = -Infinity;
                 let minY = Infinity, maxY = -Infinity;
@@ -3148,7 +3233,7 @@
                 
                 if (simMouse.x >= rx && simMouse.x <= rx + rw &&
                     simMouse.y >= ry && simMouse.y <= ry + rh) {
-                    clickedGroup = filename;
+                    clickedGroup = clusterKey;
                 }
             });
             
@@ -3173,14 +3258,7 @@
             const hideUnresolved = document.getElementById("hide-unresolved-cb").checked;
             const focusModeCb = document.getElementById("focus-mode-cb");
             const isFocusMode = focusModeCb && focusModeCb.checked && selectedNode;
-
-            const localGroups = {};
-            nodes.forEach(n => {
-                if (n.type === 'function' && n.file) {
-                    localGroups[n.file] = localGroups[n.file] || [];
-                    localGroups[n.file].push(n);
-                }
-            });
+            const { groups: localGroups } = buildClusterGroups();
 
             let clickedNode = null;
             for (let n of nodes) {
@@ -3188,8 +3266,9 @@
                 if (isFocusMode && !selectedNodeActivePaths.has(n.id)) continue;
                 
                 // If collapsed group, skip secondary nodes
-                if (n.file && collapsedGroups.has(n.file)) {
-                    const primary = localGroups[n.file] && (localGroups[n.file].find(gn => !isFocusMode || selectedNodeActivePaths.has(gn.id)) || localGroups[n.file][0]);
+                const clusterKey = getClusterKey(n);
+                if (clusterKey && collapsedGroups.has(clusterKey)) {
+                    const primary = localGroups[clusterKey] && (localGroups[clusterKey].find(gn => !isFocusMode || selectedNodeActivePaths.has(gn.id)) || localGroups[clusterKey][0]);
                     if (primary !== n) continue;
                 }
 
@@ -3235,14 +3314,7 @@
             const hideUnresolved = document.getElementById("hide-unresolved-cb").checked;
             const focusModeCb = document.getElementById("focus-mode-cb");
             const isFocusMode = focusModeCb && focusModeCb.checked && selectedNode;
-
-            const localGroups = {};
-            nodes.forEach(n => {
-                if (n.type === 'function' && n.file) {
-                    localGroups[n.file] = localGroups[n.file] || [];
-                    localGroups[n.file].push(n);
-                }
-            });
+            const { groups: localGroups } = buildClusterGroups();
 
             if (draggedNode) {
                 draggedNode.x = simMouse.x;
@@ -3257,8 +3329,9 @@
                     if (isFocusMode && !selectedNodeActivePaths.has(n.id)) continue;
                     
                     // If collapsed group, skip secondary nodes
-                    if (n.file && collapsedGroups.has(n.file)) {
-                        const primary = localGroups[n.file] && (localGroups[n.file].find(gn => !isFocusMode || selectedNodeActivePaths.has(gn.id)) || localGroups[n.file][0]);
+                    const clusterKey = getClusterKey(n);
+                    if (clusterKey && collapsedGroups.has(clusterKey)) {
+                        const primary = localGroups[clusterKey] && (localGroups[clusterKey].find(gn => !isFocusMode || selectedNodeActivePaths.has(gn.id)) || localGroups[clusterKey][0]);
                         if (primary !== n) continue;
                     }
 
@@ -3308,6 +3381,10 @@
         const focusDepthSelect = document.getElementById("focus-depth-select");
         if (focusDepthSelect) {
             focusDepthSelect.addEventListener("change", (e) => applyFocusDepthLimit(e.target.value));
+        }
+        const clusterModeSelect = document.getElementById("cluster-mode-select");
+        if (clusterModeSelect) {
+            clusterModeSelect.addEventListener("change", (e) => applyGroupingMode(e.target.value));
         }
         if (graphData.selected_node_id) {
             setTimeout(() => {

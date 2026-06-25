@@ -94,7 +94,7 @@ bigi monitor --html graph.html --log run.log
 
 - Trace the shortest path between two nodes
 - Limit focus mode to 1, 2, 3, or all hops
-- Collapse files into folder-level groups
+- Collapse files, folders, or packages into groups
 - Highlight changed files and downstream impact
 - Export the same graph as HTML or GraphML
 
