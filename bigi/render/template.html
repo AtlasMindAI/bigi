@@ -518,29 +518,29 @@
         </div>
 
         <div class="left-tabs !mt-2 !rounded-xl !border !border-white/10 !bg-white/5 !p-1">
-            <div id="left-tab-btn-search" class="left-tab-btn active !rounded-lg !px-3 !py-2 !text-[0.65rem] !font-semibold !uppercase !tracking-[0.12em] !text-slate-300" style="--highlight-color: #818cf8;" onclick="switchLeftTab('search')">Search</div>
-            <div id="left-tab-btn-git" class="left-tab-btn !rounded-lg !px-3 !py-2 !text-[0.65rem] !font-semibold !uppercase !tracking-[0.12em] !text-slate-300" style="--highlight-color: #fdba74; position: relative;" onclick="switchLeftTab('git')">
+            <div id="left-tab-btn-search" class="left-tab-btn active relative !rounded-lg !px-3 !py-2 !text-[0.65rem] !font-semibold !uppercase !tracking-[0.12em] !text-slate-300" onclick="switchLeftTab('search')">Search</div>
+            <div id="left-tab-btn-git" class="left-tab-btn relative !rounded-lg !px-3 !py-2 !text-[0.65rem] !font-semibold !uppercase !tracking-[0.12em] !text-slate-300" onclick="switchLeftTab('git')">
                 Git Risk
-                <span id="git-changes-badge" style="display: none; background: #f97316; color: white; font-size: 0.58rem; font-weight: bold; padding: 1px 5px; border-radius: 10px; margin-left: 4px; box-shadow: 0 0 5px rgba(249, 115, 22, 0.4);">0</span>
+                <span id="git-changes-badge" class="ml-1.5 hidden rounded-full bg-orange-500 px-1.5 py-0.5 text-[0.58rem] font-bold text-white shadow-[0_0_5px_rgba(249,115,22,0.4)]">0</span>
             </div>
         </div>
 
-        <div id="left-content-search" style="display: block;">
+        <div id="left-content-search" class="block">
             <div class="search-box">
-                <input type="text" id="search-input" placeholder="Search rules or functions...">
+                <input type="text" id="search-input" placeholder="Search rules or functions..." class="w-full rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 font-mono text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-indigo-400/40 focus:bg-slate-900">
             </div>
 
             <div>
                 <div class="section-title">Modalities</div>
-                <div class="legend-item" style="cursor:help;" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
+                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
                     <div class="legend-color color-rule"></div>
                     <span>Pipeline Rule</span>
                 </div>
-                <div class="legend-item" style="cursor:help;" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
+                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
                     <div class="legend-color color-func"></div>
                     <span>Script Function Definition</span>
                 </div>
-                <div class="legend-item" style="cursor:help;" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
+                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
                     <div class="legend-color color-unres"></div>
                     <span>External / Unresolved</span>
                 </div>
@@ -552,17 +552,17 @@
 
             <div>
                 <div class="section-title">Filters</div>
-                <div class="legend-item" style="cursor:help;" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
-                    <input type="checkbox" id="hide-unresolved-cb" checked style="margin-right: 8px; cursor: pointer;">
-                    <label for="hide-unresolved-cb" style="cursor: pointer; font-size: 0.8rem; user-select: none;">Hide Unresolved Links</label>
+                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
+                    <input type="checkbox" id="hide-unresolved-cb" checked class="mr-2 cursor-pointer">
+                    <label for="hide-unresolved-cb" class="cursor-pointer text-sm text-slate-300 select-none">Hide Unresolved Links</label>
                 </div>
-                <div class="legend-item" style="margin-top: 8px;">
-                    <input type="checkbox" id="focus-mode-cb" style="margin-right: 8px; cursor: pointer;">
-                    <label for="focus-mode-cb" style="cursor: pointer; font-size: 0.8rem; user-select: none; color: #818cf8; font-weight: 500; display: flex; align-items: center; gap: 4px;">[FOCUS MODE]</label>
+                <div class="legend-item mt-2">
+                    <input type="checkbox" id="focus-mode-cb" class="mr-2 cursor-pointer">
+                    <label for="focus-mode-cb" class="flex cursor-pointer items-center gap-1 text-sm font-medium text-indigo-300 select-none">[FOCUS MODE]</label>
                 </div>
-                <div class="legend-item" id="git-filter-container" style="display: none; margin-top: 8px;">
-                    <input type="checkbox" id="git-impact-cb" style="margin-right: 8px; cursor: pointer;">
-                    <label for="git-impact-cb" style="cursor: pointer; font-size: 0.8rem; user-select: none; color: #fdba74; display: flex; align-items: center; gap: 4px; font-weight: 500;">Git Changes Impact</label>
+                <div class="legend-item mt-2 hidden" id="git-filter-container">
+                    <input type="checkbox" id="git-impact-cb" class="mr-2 cursor-pointer">
+                    <label for="git-impact-cb" class="flex cursor-pointer items-center gap-1 text-sm font-medium text-amber-300 select-none">Git Changes Impact</label>
                 </div>
             </div>
 
@@ -574,35 +574,35 @@
             </div>
         </div>
 
-        <div id="left-content-git" style="display: none;">
-            <div id="git-dashboard-intro" style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.45; margin-bottom: 12px; padding: 8px; background: rgba(249, 115, 22, 0.05); border: 1px dashed rgba(249, 115, 22, 0.2); border-radius: 6px;">
+        <div id="left-content-git" class="hidden">
+            <div id="git-dashboard-intro" class="mb-3 rounded-lg border border-dashed border-amber-400/20 bg-amber-500/5 p-2 text-[0.72rem] leading-[1.45] text-slate-400">
                 No modified files detected in Git. Modify rules or functions in your repository to calculate downstream risk propagation.
             </div>
             
-            <div id="git-dashboard-active" style="display: none;">
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px;">
-                        <span style="font-size:0.7rem; color: var(--text-muted);">Impact Pruned View:</span>
-                        <div style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="git-dashboard-toggle-cb" style="cursor: pointer; margin-right: 6px;">
-                            <label for="git-dashboard-toggle-cb" style="font-size: 0.7rem; color: #fdba74; font-weight: 600; cursor: pointer; user-select:none;">Only Show Risk Radius</label>
+            <div id="git-dashboard-active" class="hidden">
+                <div class="mb-4 flex flex-col gap-2">
+                    <div class="flex items-center justify-between rounded-lg border border-white/10 bg-black/25 px-3 py-2">
+                        <span class="text-[0.7rem] text-slate-400">Impact Pruned View:</span>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="git-dashboard-toggle-cb" class="mr-1.5 cursor-pointer">
+                            <label for="git-dashboard-toggle-cb" class="cursor-pointer text-[0.7rem] font-semibold text-amber-300 select-none">Only Show Risk Radius</label>
                         </div>
                     </div>
                 </div>
 
-                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div class="section-title mb-2 flex items-center justify-between">
                     <span>Modified Entrypoints</span>
-                    <span id="git-modified-count" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(239, 68, 68, 0.2); color: #f87171; border-radius: 10px; font-weight: 700;">0</span>
+                    <span id="git-modified-count" class="rounded-full bg-rose-500/20 px-2 py-0.5 text-[0.65rem] font-bold text-rose-300">0</span>
                 </div>
-                <div id="git-entrypoints-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; max-height: 160px; overflow-y: auto; padding: 2px;">
+                <div id="git-entrypoints-list" class="mb-4 flex max-h-40 flex-col gap-2 overflow-y-auto p-0.5">
                     <!-- Populated by JS -->
                 </div>
 
-                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div class="section-title mb-2 flex items-center justify-between">
                     <span>Downstream Blast Radius</span>
-                    <span id="git-impacted-count" style="font-size: 0.65rem; padding: 2px 6px; background: rgba(249, 115, 22, 0.2); color: #fdba74; border-radius: 10px; font-weight: 700;">0</span>
+                    <span id="git-impacted-count" class="rounded-full bg-amber-500/20 px-2 py-0.5 text-[0.65rem] font-bold text-amber-300">0</span>
                 </div>
-                <div id="git-impacted-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; padding: 2px;">
+                <div id="git-impacted-list" class="flex max-h-60 flex-col gap-2 overflow-y-auto p-0.5">
                     <!-- Populated by JS -->
                 </div>
             </div>
@@ -985,18 +985,17 @@
             document.getElementById("git-impacted-count").textContent = impactedNodes.length;
 
             if (modifiedNodes.length === 0) {
-                entrypointList.innerHTML = `<div style="color:var(--text-muted); font-size:0.65rem; text-align:center; padding:10px;">No entrypoints</div>`;
+                entrypointList.innerHTML = `<div class="rounded-lg border border-white/5 bg-white/5 px-3 py-3 text-center text-[0.65rem] text-slate-400">No entrypoints</div>`;
             } else {
                 modifiedNodes.forEach(n => {
                     const item = document.createElement("div");
-                    item.className = "git-item";
-                    item.style.cssText = "background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 8px; cursor: pointer; transition: all 0.15s ease; margin-bottom: 4px;";
+                    item.className = "git-item mb-1.5 cursor-pointer rounded-xl border border-rose-400/20 bg-rose-500/5 p-3 transition hover:border-rose-300/35 hover:bg-rose-500/10";
                     item.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 3px;">
-                            <span style="font-weight: 600; font-size: 0.72rem; color: #f3f4f6;">${n.name}</span>
-                            <span style="font-size:0.55rem; text-transform:uppercase; padding: 1px 4px; border-radius: 4px; background: rgba(239, 68, 68, 0.2); color: #f87171; font-weight:700;">${n.type}</span>
+                        <div class="mb-1 flex items-center justify-between gap-2">
+                            <span class="min-w-0 truncate text-[0.72rem] font-semibold text-slate-100">${n.name}</span>
+                            <span class="shrink-0 rounded-md bg-rose-500/20 px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.08em] text-rose-300">${n.type}</span>
                         </div>
-                        <div style="font-size:0.6rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${n.file || "No file info"}</div>
+                        <div class="truncate text-[0.6rem] text-slate-400">${n.file || "No file info"}</div>
                     `;
                     item.onclick = () => window.selectNodeById(n.id);
                     entrypointList.appendChild(item);
@@ -1004,7 +1003,7 @@
             }
 
             if (impactedNodes.length === 0) {
-                impactedList.innerHTML = `<div style="color:var(--text-muted); font-size:0.65rem; text-align:center; padding:10px;">No downstream impact</div>`;
+                impactedList.innerHTML = `<div class="rounded-lg border border-white/5 bg-white/5 px-3 py-3 text-center text-[0.65rem] text-slate-400">No downstream impact</div>`;
             } else {
                 impactedNodes.forEach(n => {
                     const dist = gitRiskScores[n.id];
@@ -1022,14 +1021,13 @@
                     }
 
                     const item = document.createElement("div");
-                    item.className = "git-item";
-                    item.style.cssText = "background: rgba(249, 115, 22, 0.03); border: 1px solid rgba(249, 115, 22, 0.15); border-radius: 6px; padding: 8px; cursor: pointer; transition: all 0.15s ease; margin-bottom: 4px;";
+                    item.className = "git-item mb-1.5 cursor-pointer rounded-xl border border-amber-400/15 bg-amber-500/5 p-3 transition hover:border-amber-300/30 hover:bg-amber-500/10";
                     item.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 3px;">
-                            <span style="font-weight: 600; font-size: 0.72rem; color: #e2e8f0;">${n.name}</span>
-                            <span style="font-size:0.55rem; padding: 1px 4px; border-radius: 4px; background: ${badgeColor}; color: ${textColor}; font-weight:700;">${degreeText}</span>
+                        <div class="mb-1 flex items-center justify-between gap-2">
+                            <span class="min-w-0 truncate text-[0.72rem] font-semibold text-slate-200">${n.name}</span>
+                            <span class="shrink-0 rounded-md px-1.5 py-0.5 text-[0.55rem] font-bold" style="background:${badgeColor}; color:${textColor};">${degreeText}</span>
                         </div>
-                        <div style="font-size:0.6rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${n.file || "No file info"}</div>
+                        <div class="truncate text-[0.6rem] text-slate-400">${n.file || "No file info"}</div>
                     `;
                     item.onclick = () => window.selectNodeById(n.id);
                     impactedList.appendChild(item);
@@ -1404,7 +1402,7 @@
                 }
 
                 div.innerHTML = `
-                    <span style="font-weight: 500; display:flex; align-items:center; gap:4px;">
+                    <span class="flex items-center gap-1 font-medium">
                         ${n.git_modified ? "[M] " : ""}${n.name}
                     </span>
                     <span class="badge ${badgeClass}">${badgeText}</span>
@@ -1509,40 +1507,40 @@
             // 1. Temporarily extract block comments /* ... */
             esc = esc.replace(/(\/\*[\s\S]*?\*\/)/g, (match) => {
                 const id = `__COMMENT_${placeholders.length}__`;
-                placeholders.push({ id: id, html: `<span style="color: #6b7280; font-style: italic;">${match}</span>` });
+                placeholders.push({ id: id, html: `<span class="italic text-slate-500">${match}</span>` });
                 return id;
             });
 
             // 2. Temporarily extract single-line comments (# or //)
             esc = esc.replace(/((?:#[^\n]*)|(?:\/\/[^\n]*))/g, (match) => {
                 const id = `__COMMENT_${placeholders.length}__`;
-                placeholders.push({ id: id, html: `<span style="color: #6b7280; font-style: italic;">${match}</span>` });
+                placeholders.push({ id: id, html: `<span class="italic text-slate-500">${match}</span>` });
                 return id;
             });
             
             // 3. Temporarily extract double-quoted strings
             esc = esc.replace(/("(?:\\.|[^"\\])*")/g, (match) => {
                 const id = `__STRING_${placeholders.length}__`;
-                placeholders.push({ id: id, html: `<span style="color: #fb7185;">${match}</span>` });
+                placeholders.push({ id: id, html: `<span class="text-rose-300">${match}</span>` });
                 return id;
             });
             
             // 4. Temporarily extract single-quoted strings
             esc = esc.replace(/('(?:\\.|[^'\\])*')/g, (match) => {
                 const id = `__STRING_${placeholders.length}__`;
-                placeholders.push({ id: id, html: `<span style="color: #fb7185;">${match}</span>` });
+                placeholders.push({ id: id, html: `<span class="text-rose-300">${match}</span>` });
                 return id;
             });
 
             // 5. Highlight variables assignment / arrows
-            esc = esc.replace(/(&lt;-|=|=&gt;|-&gt;)/g, '<span style="color: #34d399;">$1</span>');
+            esc = esc.replace(/(&lt;-|=|=&gt;|-&gt;)/g, '<span class="text-emerald-400">$1</span>');
 
             // 6. Highlight keywords
             const keywords = /\b(function|if|else|for|while|return|library|require|in|next|break|def|func|fn|sub|const|let|var|class|import|export|from|as|package|struct|impl|use|using|end)\b/g;
-            esc = esc.replace(keywords, '<span style="color: #f472b6; font-weight: bold;">$1</span>');
+            esc = esc.replace(keywords, '<span class="font-bold text-fuchsia-400">$1</span>');
 
             // 7. Highlight function calls
-            esc = esc.replace(/\b([a-zA-Z0-9_\.\:]+)\s*(?=\()/g, '<span style="color: #60a5fa;">$1</span>');
+            esc = esc.replace(/\b([a-zA-Z0-9_\.\:]+)\s*(?=\()/g, '<span class="text-sky-400">$1</span>');
 
             // 8. Restore comments and strings (in reverse order to handle nesting)
             for (let i = placeholders.length - 1; i >= 0; i--) {
@@ -1556,7 +1554,7 @@
             const element = document.getElementById("mermaid-rendered-flowchart");
             if (!element) return;
             if (!window.mermaid) {
-                element.innerHTML = `<div style="color: var(--accent-unres); font-size: 0.75rem; text-align: center; padding: 20px 0;">Mermaid library failed to load (offline or CDN blocked). Copy code below.</div>`;
+                element.innerHTML = `<div class="px-0 py-5 text-center text-[0.75rem] text-amber-300">Mermaid library failed to load (offline or CDN blocked). Copy code below.</div>`;
                 return;
             }
             
@@ -1593,11 +1591,11 @@
                     });
                 }).catch(err => {
                     console.error("Mermaid Render Error: ", err);
-                    element.innerHTML = `<div style="color: var(--accent-unres); font-size: 0.75rem; text-align: center; padding: 20px 0;">Mermaid render error. Copy code below.</div>`;
+                    element.innerHTML = `<div class="px-0 py-5 text-center text-[0.75rem] text-amber-300">Mermaid render error. Copy code below.</div>`;
                 });
             } catch (e) {
                 console.error(e);
-                element.innerHTML = `<div style="color: var(--accent-unres); font-size: 0.75rem; text-align: center; padding: 20px 0;">Mermaid render initialization error.</div>`;
+                element.innerHTML = `<div class="px-0 py-5 text-center text-[0.75rem] text-amber-300">Mermaid render initialization error.</div>`;
             }
         }
 
@@ -1642,11 +1640,11 @@
 
             let criticalityBadge = "";
             if (node.centralityScore > 0.6) {
-                criticalityBadge = `<span class="badge" style="color: #ff0055; border-color: #ff0055;">CRITICAL HUB</span>`;
+                criticalityBadge = `<span class="badge !border-rose-500 !text-rose-400">CRITICAL HUB</span>`;
             } else if (node.centralityScore > 0.3) {
-                criticalityBadge = `<span class="badge" style="color: #ffaa00; border-color: #ffaa00;">HIGH CONFLICT</span>`;
+                criticalityBadge = `<span class="badge !border-amber-500 !text-amber-400">HIGH CONFLICT</span>`;
             } else {
-                criticalityBadge = `<span class="badge" style="color: #888; border-color: #333;">NORMAL LINKAGE</span>`;
+                criticalityBadge = `<span class="badge !border-slate-700 !text-slate-400">NORMAL LINKAGE</span>`;
             }
 
             let specificDetails = "";
@@ -1655,21 +1653,21 @@
                 const fileUri = `file://${absPath}`;
                 specificDetails = `
                     <div class="section-title">Rule Configuration</div>
-                    <div style="font-size: 0.78rem; margin-bottom: 8px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <strong>File:</strong> <a href="${fileUri}" target="_blank" style="color: #818cf8; text-decoration: underline; font-family: monospace; font-size: 0.75rem;">${node.file}</a>
+                    <div class="mb-2 flex flex-wrap items-center gap-2 text-[0.78rem] text-slate-400">
+                        <strong>File:</strong> <a href="${fileUri}" target="_blank" class="font-mono text-[0.75rem] text-indigo-300 underline">${node.file}</a>
                         <a href="vscode://file${absPath}:1" 
                            title="Open in VS Code" 
-                           style="display: inline-flex; align-items: center; justify-content: center; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); color: #a5b4fc; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-decoration: none; cursor: pointer;">
+                           class="inline-flex cursor-pointer items-center justify-center rounded-md border border-indigo-400/30 bg-indigo-500/15 px-1.5 py-0.5 text-[0.65rem] font-semibold text-indigo-200 no-underline">
                            [OPEN IN EDITOR]
                         </a>
                     </div>
                     <div class="section-title">Inputs</div>
-                    <ul class="detail-list">
-                        ${node.inputs.map(i => `<li>${i}</li>`).join("") || "<li style='color: var(--text-muted); italic;'>None</li>"}
+                    <ul class="detail-list !pl-0">
+                        ${node.inputs.map(i => `<li>${i}</li>`).join("") || "<li class='italic text-slate-500'>None</li>"}
                     </ul>
                     <div class="section-title">Outputs</div>
-                    <ul class="detail-list">
-                        ${node.outputs.map(o => `<li>${o}</li>`).join("") || "<li style='color: var(--text-muted); italic;'>None</li>"}
+                    <ul class="detail-list !pl-0">
+                        ${node.outputs.map(o => `<li>${o}</li>`).join("") || "<li class='italic text-slate-500'>None</li>"}
                     </ul>
                 `;
             } else if (node.type === "unresolved") {
@@ -1683,16 +1681,16 @@
                 
                 specificDetails = `
                     <div class="section-title">External Function Context</div>
-                    <div style="font-size: 0.78rem; margin-bottom: 8px; color: var(--text-muted);">
+                    <div class="mb-2 text-[0.78rem] text-slate-400">
                         This is an external library or package function.
                     </div>
                     ${pkgName ? `
-                    <div style="margin-bottom: 12px;">
-                        <span class="badge badge-unres" style="font-size: 0.7rem; background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); padding: 4px 8px;">Package: ${pkgName}</span>
+                    <div class="mb-3">
+                        <span class="badge badge-unres !bg-rose-500/20 !px-2 !py-1 !text-[0.7rem] !text-rose-300">Package: ${pkgName}</span>
                     </div>` : ""}
-                    <div style="font-size: 0.78rem; margin-top: 8px; display: flex; gap: 8px;">
-                        <a href="https://rdrr.io/search/?q=${node.name}" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 500;">Search Rdrr.io Docs</a>
-                        ${pkgName ? `• <a href="https://rdrr.io/cran/${pkgName}/man/${funcName}.html" target="_blank" style="color: #6366f1; text-decoration: underline; font-weight: 500;">Direct Page</a>` : ""}
+                    <div class="mt-2 flex gap-2 text-[0.78rem]">
+                        <a href="https://rdrr.io/search/?q=${node.name}" target="_blank" class="font-medium text-indigo-400 underline">Search Rdrr.io Docs</a>
+                        ${pkgName ? `• <a href="https://rdrr.io/cran/${pkgName}/man/${funcName}.html" target="_blank" class="font-medium text-indigo-400 underline">Direct Page</a>` : ""}
                     </div>
                 `;
             } else {
@@ -1700,15 +1698,15 @@
                 const fileUri = `file://${absPath}` + (node.line_range.length ? `#L${node.line_range[0]}` : "");
                 specificDetails = `
                     <div class="section-title">Function Context</div>
-                    <div style="font-size: 0.78rem; margin-bottom: 8px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <strong>File:</strong> <a href="${fileUri}" target="_blank" style="color: #818cf8; text-decoration: underline; font-family: monospace; font-size: 0.75rem;">${node.file}</a>
+                    <div class="mb-2 flex flex-wrap items-center gap-2 text-[0.78rem] text-slate-400">
+                        <strong>File:</strong> <a href="${fileUri}" target="_blank" class="font-mono text-[0.75rem] text-indigo-300 underline">${node.file}</a>
                         <a href="vscode://file${absPath}:${node.line_range.length ? node.line_range[0] : 1}" 
                            title="Open in VS Code" 
-                           style="display: inline-flex; align-items: center; justify-content: center; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); color: #a5b4fc; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-decoration: none; cursor: pointer;">
+                           class="inline-flex cursor-pointer items-center justify-center rounded-md border border-indigo-400/30 bg-indigo-500/15 px-1.5 py-0.5 text-[0.65rem] font-semibold text-indigo-200 no-underline">
                            [OPEN IN EDITOR]
                         </a>
                     </div>
-                    ${node.line_range.length ? `<div style="font-size: 0.78rem; color: var(--text-muted);"><strong>Line range:</strong> ${node.line_range[0]} - ${node.line_range[1]}</div>` : ""}
+                    ${node.line_range.length ? `<div class="text-[0.78rem] text-slate-400"><strong>Line range:</strong> ${node.line_range[0]} - ${node.line_range[1]}</div>` : ""}
                 `;
             }
 
@@ -1721,18 +1719,18 @@
 
             content.innerHTML = `
                 <div class="detail-header">
-                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 6px;">
+                    <div class="flex w-full flex-wrap items-center justify-between gap-2">
                         <div class="detail-title">${node.name}</div>
-                        ${node.git_modified ? `<span class="badge" style="color: #ffaa00; border: 1px solid #ffaa00;">MODIFIED</span>` : ""}
+                        ${node.git_modified ? `<span class="badge !border-amber-400 !text-amber-300">MODIFIED</span>` : ""}
                     </div>
-                    <span class="badge ${node.type === 'rule' ? 'badge-rule' : node.type === 'unresolved' ? 'badge-unres' : node.type === 'schema' ? 'badge-schema' : 'badge-func'}" style="margin-top:5px; display:inline-block;">${node.type.toUpperCase()}</span>
+                    <span class="badge ${node.type === 'rule' ? 'badge-rule' : node.type === 'unresolved' ? 'badge-unres' : node.type === 'schema' ? 'badge-schema' : 'badge-func'} mt-1 inline-block">${node.type.toUpperCase()}</span>
                     
                     <!-- Path Tracing Controls -->
-                    <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="btn" style="padding: 4px 8px; font-size: 0.6rem;" onclick="setPathStart('${node.id}')">
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        <button class="btn !px-2 !py-1 !text-[0.6rem]" onclick="setPathStart('${node.id}')">
                             [SET AS START]
                         </button>
-                        <button class="btn" style="padding: 4px 8px; font-size: 0.6rem;" onclick="setPathEnd('${node.id}')">
+                        <button class="btn !px-2 !py-1 !text-[0.6rem]" onclick="setPathEnd('${node.id}')">
                             [SET AS END]
                         </button>
                     </div>
@@ -1748,17 +1746,17 @@
                 <div id="tab-content-overview" class="tab-content ${activeTabId === 'overview' ? 'active' : ''}">
                     ${specificDetails}
                     <div class="section-title">Criticality Analysis</div>
-                    <div style="font-size: 0.78rem; display: flex; align-items: center; gap: 8px;">
+                    <div class="flex items-center gap-2 text-[0.78rem]">
                         <strong>Linkage Strength:</strong> ${criticalityBadge}
                     </div>
-                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; line-height: 1.35;">
+                    <div class="mt-1.5 text-[0.72rem] leading-[1.35] text-slate-400">
                         Degree score: <strong>${node.centrality}</strong> active connections.
                     </div>
                 </div>
 
                 <div id="tab-content-trace" class="tab-content ${activeTabId === 'trace' ? 'active' : ''}">
                     <div class="section-title">Dependencies (Upstream)</div>
-                    <ul class="detail-list" style="padding-left:0;">
+                    <ul class="detail-list !pl-0">
                         ${incoming.map(i => {
                             let connDesc = "";
                             if (i.type === "pipeline_dep") {
@@ -1771,23 +1769,23 @@
                                 }
                             }
                             return `
-                                <li style="display:flex; flex-direction:column; gap:4px; margin-bottom: 6px; list-style:none;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-                                        <span style="color: #00e5ff; cursor:pointer; font-weight: 600;" onclick="selectNodeById('${i.node.id}')">${i.node.name}</span>
+                                <li class="mb-1.5 flex list-none flex-col gap-1 rounded-lg border border-white/5 bg-white/5 px-3 py-2">
+                                    <div class="flex w-full items-center justify-between gap-2">
+                                        <span class="cursor-pointer font-semibold text-cyan-300" onclick="selectNodeById('${i.node.id}')">${i.node.name}</span>
 
                                         <span class="badge ${i.conf === 'HIGH' ? 'badge-func' : i.conf === 'AMBIGUOUS' ? 'badge-rule' : 'badge-unres'}">${i.conf}</span>
                                     </div>
-                                    <div style="font-size:0.75rem; color:var(--text-main); margin-top:2px;">
+                                    <div class="mt-0.5 text-[0.75rem] text-slate-100">
                                         ${connDesc}
                                     </div>
-                                    ${i.detail ? `<div style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">Note: ${i.detail}</div>` : ""}
+                                    ${i.detail ? `<div class="text-[0.7rem] italic text-slate-400">Note: ${i.detail}</div>` : ""}
                                 </li>
                             `;
-                        }).join("") || "<li style='color: var(--text-muted); list-style:none;'>None</li>"}
+                        }).join("") || "<li class='list-none text-slate-400'>None</li>"}
                     </ul>
 
                     <div class="section-title">Downstream Impact (What breaks if changed)</div>
-                    <ul class="detail-list" style="padding-left:0;">
+                    <ul class="detail-list !pl-0">
                         ${outgoing.map(o => {
                             let connDesc = "";
                             if (o.type === "pipeline_dep") {
@@ -1800,18 +1798,18 @@
                                 }
                             }
                             return `
-                                <li style="display:flex; flex-direction:column; gap:4px; margin-bottom: 6px; list-style:none;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-                                        <span style="color: #00e5ff; cursor:pointer; font-weight: 600;" onclick="selectNodeById('${o.node.id}')">${o.node.name}</span>
+                                <li class="mb-1.5 flex list-none flex-col gap-1 rounded-lg border border-white/5 bg-white/5 px-3 py-2">
+                                    <div class="flex w-full items-center justify-between gap-2">
+                                        <span class="cursor-pointer font-semibold text-cyan-300" onclick="selectNodeById('${o.node.id}')">${o.node.name}</span>
                                         <span class="badge ${o.conf === 'HIGH' ? 'badge-func' : o.conf === 'AMBIGUOUS' ? 'badge-rule' : 'badge-unres'}">${o.conf}</span>
                                     </div>
-                                    <div style="font-size:0.75rem; color:var(--text-main); margin-top:2px;">
+                                    <div class="mt-0.5 text-[0.75rem] text-slate-100">
                                         ${connDesc}
                                     </div>
-                                    ${o.detail ? `<div style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">Note: ${o.detail}</div>` : ""}
+                                    ${o.detail ? `<div class="text-[0.7rem] italic text-slate-400">Note: ${o.detail}</div>` : ""}
                                 </li>
                             `;
-                        }).join("") || "<li style='color: var(--text-muted); list-style:none;'>None</li>"}
+                        }).join("") || "<li class='list-none text-slate-400'>None</li>"}
                     </ul>
                 </div>
 
@@ -1823,19 +1821,19 @@
                 ` : ""}
 
                 <div id="tab-content-mermaid" class="tab-content ${activeTabId === 'mermaid' ? 'active' : ''}">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-                        <span class="section-title" style="margin-top:0; margin-bottom:0;">Interactive Flowchart</span>
-                        <button id="mermaid-open-btn" class="btn" style="padding: 4px 10px; font-size: 0.65rem;" onclick="openMermaidInNewWindow()">[NEW WINDOW]</button>
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <span class="section-title !m-0">Interactive Flowchart</span>
+                        <button id="mermaid-open-btn" class="btn !px-2.5 !py-1 !text-[0.65rem]" onclick="openMermaidInNewWindow()">[NEW WINDOW]</button>
                     </div>
-                    <div id="mermaid-rendered-flowchart" style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 16px; display: flex; justify-content: center; overflow-x: auto; min-height: 120px;">
-                        <div style="color: var(--text-muted); font-size: 0.75rem; text-align: center; width: 100%; padding: 20px 0;">Generating Flowchart...</div>
+                    <div id="mermaid-rendered-flowchart" class="mb-4 flex min-h-[120px] justify-center overflow-x-auto rounded-xl border border-white/10 bg-black/30 p-3">
+                        <div class="w-full py-5 text-center text-[0.75rem] text-slate-400">Generating Flowchart...</div>
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
-                        <span class="section-title" style="margin-top:0; margin-bottom:0;">Mermaid Flowchart Code</span>
-                        <button id="mermaid-copy-btn" class="btn" style="padding: 4px 10px; font-size: 0.65rem;" onclick="copyMermaidToClipboard()">[COPY CODE]</button>
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <span class="section-title !m-0">Mermaid Flowchart Code</span>
+                        <button id="mermaid-copy-btn" class="btn !px-2.5 !py-1 !text-[0.65rem]" onclick="copyMermaidToClipboard()">[COPY CODE]</button>
                     </div>
-                    <pre class="code-container" style="color: #c084fc; max-height: 200px;"><code id="mermaid-code-block">${escapeHtml(mermaidCode)}</code></pre>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 10px; line-height: 1.45;">
+                    <pre class="code-container !max-h-[200px] !text-violet-300"><code id="mermaid-code-block">${escapeHtml(mermaidCode)}</code></pre>
+                    <div class="mt-2 text-[0.7rem] leading-[1.45] text-slate-400">
                         [TIP] Click nodes in the visual flow above to quickly focus the main graph canvas on that node.
                     </div>
                 </div>
