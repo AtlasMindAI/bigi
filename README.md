@@ -23,7 +23,7 @@ BiGI shows what breaks before you change the code in any codebase.
 BiGI scans a repository, builds a dependency graph, and traces downstream impact across:
 
 - Python, R, and shell code
-- automation and workflow files
+- automation, build, and workflow files
 - scripts, modules, and source files
 - local folders, GitHub URLs, or multiple repositories
 
@@ -61,7 +61,7 @@ npx bigi --help
 ### Build a graph
 
 ```bash
-bigi analyze path/to/project --html graph.html
+bigi analyze path/to/codebase --html graph.html
 ```
 
 Open `graph.html` in a browser to inspect the graph.
@@ -69,7 +69,7 @@ Open `graph.html` in a browser to inspect the graph.
 ### Trace impact
 
 ```bash
-bigi impact my_function --pipeline-dir my_project/
+bigi impact my_function --pipeline-dir path/to/codebase/
 ```
 
 ### Export GraphML
@@ -90,6 +90,14 @@ bigi analyze repo1/ repo2/ repo3/ --html org_graph.html
 bigi monitor --html graph.html --log run.log
 ```
 
+## Advanced graph views
+
+- Trace the shortest path between two nodes
+- Limit focus mode to 1, 2, 3, or all hops
+- Collapse files into folder-level groups
+- Highlight changed files and downstream impact
+- Export the same graph as HTML or GraphML
+
 ## Output
 
 BiGI can generate:
@@ -97,7 +105,7 @@ BiGI can generate:
 - an interactive HTML graph
 - GraphML for Cytoscape, Gephi, or other graph tools
 - a markdown PR impact report
-- a live execution overlay for jobs and runs
+- a live execution overlay for jobs, tasks, and runs
 
 ## GitHub Action
 

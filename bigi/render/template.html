@@ -532,15 +532,15 @@
 
             <div>
                 <div class="section-title">Modalities</div>
-                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
+                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Rule: A task or entry point in the graph.'); else if(this.innerText.includes('Function')) alert('Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
                     <div class="legend-color color-rule"></div>
-                    <span>Pipeline Rule</span>
+                    <span>Rule / Entry Point</span>
                 </div>
-                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
+                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Rule: A task or entry point in the graph.'); else if(this.innerText.includes('Function')) alert('Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
                     <div class="legend-color color-func"></div>
-                    <span>Script Function Definition</span>
+                    <span>Function Definition</span>
                 </div>
-                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
+                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Rule: A task or entry point in the graph.'); else if(this.innerText.includes('Function')) alert('Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
                     <div class="legend-color color-unres"></div>
                     <span>External / Unresolved</span>
                 </div>
@@ -552,13 +552,28 @@
 
             <div>
                 <div class="section-title">Filters</div>
-                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Pipeline Rule: A task executed by the orchestrator.'); else if(this.innerText.includes('Function')) alert('Script Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
+                <div class="legend-item cursor-help" onclick="if(this.innerText.includes('Rule')) alert('Rule: A task or entry point in the graph.'); else if(this.innerText.includes('Function')) alert('Function: A logic block extracted from source code.'); else if(this.innerText.includes('Unresolved')) alert('Unresolved: External or dynamic dependency that cannot be statically traced.');">
                     <input type="checkbox" id="hide-unresolved-cb" checked class="mr-2 cursor-pointer">
                     <label for="hide-unresolved-cb" class="cursor-pointer text-sm text-slate-300 select-none">Hide Unresolved Links</label>
                 </div>
                 <div class="legend-item mt-2">
                     <input type="checkbox" id="focus-mode-cb" class="mr-2 cursor-pointer">
                     <label for="focus-mode-cb" class="flex cursor-pointer items-center gap-1 text-sm font-medium text-indigo-300 select-none">[FOCUS MODE]</label>
+                </div>
+                <div class="mt-2 rounded-xl border border-white/10 bg-black/20 p-3">
+                    <div class="mb-2 flex items-center justify-between gap-2">
+                        <span class="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-slate-400">Impact Depth</span>
+                        <span class="text-[0.6rem] text-slate-500">Focus radius</span>
+                    </div>
+                    <select id="focus-depth-select" class="w-full rounded-lg border border-white/10 bg-slate-950/80 px-3 py-2 font-mono text-[0.72rem] text-slate-100 outline-none focus:border-indigo-400/40">
+                        <option value="all">All hops</option>
+                        <option value="1">1 hop</option>
+                        <option value="2" selected>2 hops</option>
+                        <option value="3">3 hops</option>
+                    </select>
+                    <div class="mt-2 text-[0.65rem] leading-[1.4] text-slate-500">
+                        Limit the graph to the neighborhood around the selected node.
+                    </div>
                 </div>
                 <div class="legend-item mt-2 hidden" id="git-filter-container">
                     <input type="checkbox" id="git-impact-cb" class="mr-2 cursor-pointer">
@@ -859,6 +874,7 @@
         let draggedNode = null;
         let mouseSim = { x: null, y: null };
         let layoutMode = 'swimlane'; // 'swimlane' or 'free'
+        let focusDepthLimit = 2;
 
         // Git Changes Impact Tracker State
         let gitRiskScores = {}; // Map of node.id -> shortest path distance from modified node (0 is modified, 1 is direct downstream, etc.)
@@ -871,6 +887,7 @@
         let pathEndNode = null;
         let pathTracingNodes = new Set();
         let pathTracingLinks = new Set();
+        let pathTracingFound = false;
 
         function calculateGitImpact() {
             const modifiedIds = [];
@@ -948,6 +965,25 @@
                 document.getElementById('left-content-search').style.display = 'none';
                 document.getElementById('left-content-git').style.display = 'block';
                 populateGitDashboard();
+            }
+        }
+
+        function getFocusDepthLimit() {
+            return focusDepthLimit === Infinity ? Infinity : Math.max(1, focusDepthLimit);
+        }
+
+        function applyFocusDepthLimit(depthValue) {
+            if (depthValue === "all") {
+                focusDepthLimit = Infinity;
+            } else {
+                const parsed = parseInt(depthValue, 10);
+                focusDepthLimit = Number.isFinite(parsed) && parsed > 0 ? parsed : 2;
+            }
+
+            if (selectedNode) {
+                computeActivePaths(selectedNode, getFocusDepthLimit());
+                populateNodeList(document.getElementById("search-input").value);
+                draw();
             }
         }
 
@@ -1035,34 +1071,44 @@
             }
         }
 
-        function computeActivePaths(node) {
+        function computeActivePaths(node, depthLimit = Infinity) {
             selectedNodeActivePaths.clear();
             selectedNodeActiveLinks.clear();
             if (!node) return;
-            
-            selectedNodeActivePaths.add(node.id);
-            let queue = [node.id];
-            while (queue.length > 0) {
-                let curr = queue.shift();
-                links.forEach(l => {
-                    if (l.target === curr && !selectedNodeActivePaths.has(l.source)) {
-                        selectedNodeActivePaths.add(l.source);
-                        selectedNodeActiveLinks.add(l);
-                        queue.push(l.source);
-                    }
-                });
-            }
-            queue = [node.id];
-            while (queue.length > 0) {
-                let curr = queue.shift();
-                links.forEach(l => {
-                    if (l.source === curr && !selectedNodeActivePaths.has(l.target)) {
-                        selectedNodeActivePaths.add(l.target);
-                        selectedNodeActiveLinks.add(l);
-                        queue.push(l.target);
-                    }
-                });
-            }
+
+            const adjForward = {};
+            const adjBackward = {};
+            links.forEach(l => {
+                adjForward[l.source] = adjForward[l.source] || [];
+                adjForward[l.source].push({ id: l.target, link: l });
+
+                adjBackward[l.target] = adjBackward[l.target] || [];
+                adjBackward[l.target].push({ id: l.source, link: l });
+            });
+
+            const walk = (startId, adjacency) => {
+                const visited = new Set([startId]);
+                const queue = [{ id: startId, depth: 0 }];
+
+                while (queue.length > 0) {
+                    const { id: curr, depth } = queue.shift();
+                    if (depthLimit !== Infinity && depth >= depthLimit) continue;
+
+                    const neighbors = adjacency[curr] || [];
+                    neighbors.forEach(({ id: nextId, link }) => {
+                        selectedNodeActiveLinks.add(link);
+                        if (!visited.has(nextId)) {
+                            visited.add(nextId);
+                            queue.push({ id: nextId, depth: depth + 1 });
+                        }
+                    });
+                }
+
+                return visited;
+            };
+
+            walk(node.id, adjBackward).forEach(id => selectedNodeActivePaths.add(id));
+            walk(node.id, adjForward).forEach(id => selectedNodeActivePaths.add(id));
         }
 
         // Calculate degree centrality for visual sizing and analysis
@@ -1612,7 +1658,7 @@
             }
 
             rightPanel.classList.add("active");
-            computeActivePaths(node);
+            computeActivePaths(node, getFocusDepthLimit());
             
             // Highlight connections
             const incoming = [];
@@ -1792,7 +1838,7 @@
                                 connDesc = `Feeds outputs into rule <code>${o.node.name}</code> (matched via <code>${o.label}</code>)`;
                             } else if (o.type === "script_call") {
                                 if (o.node.type === "rule") {
-                                    connDesc = `Called inside script run by Pipeline Rule <code>${o.node.name}</code> (<code>${o.node.file}</code>)`;
+                                    connDesc = `Called inside the script for rule <code>${o.node.name}</code> (<code>${o.node.file}</code>)`;
                                 } else {
                                     connDesc = `Called inside body of function <code>${o.node.name}()</code>`;
                                 }
@@ -1884,6 +1930,7 @@
             pathEndNode = null;
             pathTracingNodes.clear();
             pathTracingLinks.clear();
+            pathTracingFound = false;
             document.getElementById("path-tracing-hud").style.display = "none";
             isSimulating = true; // Wake up physics
         };
@@ -1898,8 +1945,8 @@
                 const startLabel = document.getElementById("path-start-name");
                 const endLabel = document.getElementById("path-end-name");
                 
-                let hasPath = pathTracingNodes.has(pathStartNode.id) && pathTracingNodes.has(pathEndNode.id) && pathTracingNodes.size >= 2;
-                if (pathStartNode.id === pathEndNode.id) hasPath = true;
+                const hasPath = pathTracingFound;
+                const pathLength = pathTracingLinks.size;
                 
                 if (!hasPath) {
                     hud.style.borderColor = "rgba(244, 63, 94, 0.6)";
@@ -1908,7 +1955,7 @@
                 } else {
                     hud.style.borderColor = "rgba(99, 102, 241, 0.45)";
                     endLabel.style.color = "#f472b6";
-                    endLabel.textContent = pathEndNode.name;
+                    endLabel.textContent = pathEndNode.name + (pathLength > 0 ? ` (${pathLength} hops)` : "");
                 }
             }
             isSimulating = true; // Wake up physics to layout/render
@@ -1917,65 +1964,48 @@
         function computePathTracing() {
             pathTracingNodes.clear();
             pathTracingLinks.clear();
+            pathTracingFound = false;
             
             if (!pathStartNode || !pathEndNode) return;
-            
-            // 1. Forward traversal from StartNode
-            const reachableFromStart = new Set();
-            const queueStart = [pathStartNode.id];
-            reachableFromStart.add(pathStartNode.id);
-            
-            // Create adjacency lists
+
             const adjForward = {};
-            const adjBackward = {};
             links.forEach(l => {
                 adjForward[l.source] = adjForward[l.source] || [];
-                adjForward[l.source].push(l.target);
-                
-                adjBackward[l.target] = adjBackward[l.target] || [];
-                adjBackward[l.target].push(l.source);
+                adjForward[l.source].push(l);
             });
-            
-            while (queueStart.length > 0) {
-                const curr = queueStart.shift();
+
+            const queue = [pathStartNode.id];
+            const parent = new Map([[pathStartNode.id, null]]);
+
+            while (queue.length > 0) {
+                const curr = queue.shift();
+                if (curr === pathEndNode.id) break;
+
                 const neighbors = adjForward[curr] || [];
-                neighbors.forEach(nxt => {
-                    if (!reachableFromStart.has(nxt)) {
-                        reachableFromStart.add(nxt);
-                        queueStart.push(nxt);
+                neighbors.forEach(link => {
+                    if (!parent.has(link.target)) {
+                        parent.set(link.target, { prev: curr, link });
+                        queue.push(link.target);
                     }
                 });
             }
-            
-            // 2. Backward traversal from EndNode (using reverse edges)
-            const canReachEnd = new Set();
-            const queueEnd = [pathEndNode.id];
-            canReachEnd.add(pathEndNode.id);
-            
-            while (queueEnd.length > 0) {
-                const curr = queueEnd.shift();
-                const neighbors = adjBackward[curr] || [];
-                neighbors.forEach(nxt => {
-                    if (!canReachEnd.has(nxt)) {
-                        canReachEnd.add(nxt);
-                        queueEnd.push(nxt);
-                    }
-                });
+
+            if (!parent.has(pathEndNode.id)) {
+                pathTracingNodes.add(pathStartNode.id);
+                pathTracingNodes.add(pathEndNode.id);
+                return;
             }
-            
-            // 3. Find intersection of reachable sets
-            nodes.forEach(n => {
-                if (reachableFromStart.has(n.id) && canReachEnd.has(n.id)) {
-                    pathTracingNodes.add(n.id);
-                }
-            });
-            
-            // 4. Find links connecting these nodes
-            links.forEach(l => {
-                if (pathTracingNodes.has(l.source) && pathTracingNodes.has(l.target)) {
-                    pathTracingLinks.add(l);
-                }
-            });
+
+            pathTracingFound = true;
+            let curr = pathEndNode.id;
+            pathTracingNodes.add(curr);
+            while (curr !== pathStartNode.id) {
+                const entry = parent.get(curr);
+                if (!entry) break;
+                pathTracingNodes.add(entry.prev);
+                pathTracingLinks.add(entry.link);
+                curr = entry.prev;
+            }
         }
 
         // Graph Simulation Loop
@@ -2434,6 +2464,7 @@
         // Draw Loop (with dynamic filtering of unresolved links/nodes for massive performance gains)
         function draw() {
             ctx.clearRect(0, 0, width, height);
+            const isPanMode = isDraggingCanvas && !draggedNode;
 
             // Draw dynamic background engineering grid first
             drawGrid();
@@ -2567,7 +2598,7 @@
 
                 const isLinkSelected = selectedNode && (selectedNode.id === s.id || selectedNode.id === t.id);
                 
-                if (transform.k < 0.22 && !isLinkSelected && !isPathActive) {
+                if (isPanMode || transform.k < 0.22 && !isLinkSelected && !isPathActive) {
                     // Straight lines without gradients/curves when zoomed out for extreme rendering speedups
                     ctx.beginPath();
                     ctx.moveTo(s.x, s.y);
@@ -2655,7 +2686,7 @@
                 // Draw rotated connection labels along the edge (only drawn if selected/hovered)
                 const isLinkHovered = hoveredNode && (hoveredNode.id === s.id || hoveredNode.id === t.id);
                 const showLabels = isLinkSelected || isLinkHovered;
-                if (l.label && showLabels && isLinkHighlighted) {
+                if (!isPanMode && l.label && showLabels && isLinkHighlighted) {
                     const mx = 0.25 * s.x + 0.5 * qx + 0.25 * t.x;
                     const my = 0.25 * s.y + 0.5 * qy + 0.25 * t.y;
 
@@ -2748,13 +2779,15 @@
                                  l.confidence === 'AMBIGUOUS' ? "#6366f1" : "#f43f5e";
                 }
 
-                ctx.beginPath();
-                ctx.arc(px, py, 2.2, 0, 2 * Math.PI);
-                ctx.fillStyle = pulseColor;
-                ctx.shadowColor = pulseColor;
-                ctx.shadowBlur = 4;
-                ctx.fill();
-                ctx.shadowBlur = 0;
+                if (!isPanMode) {
+                    ctx.beginPath();
+                    ctx.arc(px, py, 2.2, 0, 2 * Math.PI);
+                    ctx.fillStyle = pulseColor;
+                    ctx.shadowColor = pulseColor;
+                    ctx.shadowBlur = 4;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
             });
 
             // Draw Nodes (represented as clean glassmorphic pill badges matching biological pathway standards, skip unresolved if hidden)
@@ -2860,7 +2893,7 @@
                 ctx.setLineDash([]); // reset
 
                 // Draw dynamic change propagation warnings (neon risk halos)
-                if (hasGitChanges && n.id in gitRiskScores && isHighlighted) {
+                if (!isPanMode && hasGitChanges && n.id in gitRiskScores && isHighlighted) {
                     ctx.save();
                     const riskDist = gitRiskScores[n.id];
                     let glowColor = "rgba(249, 115, 22, 0.4)"; // Orange (1st degree)
@@ -2906,7 +2939,7 @@
                 }
 
                 // Draw orange highlight border for Git modified files (source)
-                if (n.git_modified && isHighlighted) {
+                if (!isPanMode && n.git_modified && isHighlighted) {
                     ctx.save();
                     ctx.shadowColor = "#f97316";
                     ctx.shadowBlur = 8;
@@ -2928,7 +2961,7 @@
                 }
 
                 // Draw drop-shadow halo glows for active selections
-                if (isSelected) {
+                if (!isPanMode && isSelected) {
                     ctx.save();
                     ctx.shadowColor = baseColor;
                     ctx.shadowBlur = 15;
@@ -3056,7 +3089,9 @@
 
         // Animation loop
         function tick() {
-            runSimulation();
+            if (draggedNode || !isDraggingCanvas) {
+                runSimulation();
+            }
             draw();
             drawMinimap();
             requestAnimationFrame(tick);
@@ -3172,12 +3207,23 @@
                 selectNode(clickedNode);
             } else {
                 isDraggingCanvas = true;
+                mouseSim.x = null;
+                mouseSim.y = null;
                 dragStart.x = e.clientX - transform.x;
                 dragStart.y = e.clientY - transform.y;
             }
         });
 
         canvas.addEventListener("mousemove", (e) => {
+            if (isDraggingCanvas && !draggedNode) {
+                transform.x = e.clientX - dragStart.x;
+                transform.y = e.clientY - dragStart.y;
+                mouseSim.x = null;
+                mouseSim.y = null;
+                hoveredNode = null;
+                return;
+            }
+
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
@@ -3203,9 +3249,6 @@
                 draggedNode.y = simMouse.y;
                 draggedNode.vx = 0;
                 draggedNode.vy = 0;
-            } else if (isDraggingCanvas) {
-                transform.x = e.clientX - dragStart.x;
-                transform.y = e.clientY - dragStart.y;
             } else {
                 // Hover detection
                 let curHover = null;
@@ -3262,6 +3305,10 @@
         }, { passive: false });
         
         populateNodeList();
+        const focusDepthSelect = document.getElementById("focus-depth-select");
+        if (focusDepthSelect) {
+            focusDepthSelect.addEventListener("change", (e) => applyFocusDepthLimit(e.target.value));
+        }
         if (graphData.selected_node_id) {
             setTimeout(() => {
                 selectNodeById(graphData.selected_node_id);
