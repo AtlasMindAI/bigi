@@ -495,6 +495,7 @@
         <button class="btn !rounded-full !border-white/10 !bg-white/5 !px-4 !py-2 !text-[0.72rem] !font-semibold !uppercase !tracking-[0.08em] !text-slate-200 hover:!border-white/20 hover:!bg-white/10" id="btn-reset">Reset Layout</button>
         <button class="btn !rounded-full !border-white/10 !bg-white/5 !px-4 !py-2 !text-[0.72rem] !font-semibold !uppercase !tracking-[0.08em] !text-slate-200 hover:!border-white/20 hover:!bg-white/10" id="btn-layout">Layout: Swimlanes</button>
         <button class="btn !rounded-full !border-sky-400/30 !bg-sky-400/15 !px-4 !py-2 !text-[0.72rem] !font-semibold !uppercase !tracking-[0.08em] !text-sky-100 hover:!border-sky-300/50 hover:!bg-sky-400/25" id="btn-export">Export PNG</button>
+        <button class="btn !rounded-full !border-cyan-400/30 !bg-cyan-400/15 !px-4 !py-2 !text-[0.72rem] !font-semibold !uppercase !tracking-[0.08em] !text-cyan-100 hover:!border-cyan-300/50 hover:!bg-cyan-400/25" id="btn-command-palette">Command Palette</button>
     </div>
 
     <!-- Minimap overlay -->
@@ -650,6 +651,19 @@
         <div id="detail-content" class="space-y-4">
             <!-- Populated by JS -->
         </div>
+    </div>
+
+    <div id="command-palette-backdrop" class="fixed inset-0 z-40 hidden bg-slate-950/70 backdrop-blur-sm"></div>
+    <div id="command-palette" class="fixed left-1/2 top-24 z-50 hidden w-[min(92vw,760px)] -translate-x-1/2 overflow-hidden rounded-3xl border border-white/10 bg-slate-950/95 shadow-[0_30px_100px_rgba(0,0,0,0.55)]">
+        <div class="flex items-center gap-3 border-b border-white/10 px-4 py-4">
+            <span class="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-cyan-200">Command</span>
+            <input id="command-palette-input" type="text" autocomplete="off" spellcheck="false" placeholder="Type a command or node name" class="h-11 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 font-mono text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400/40 focus:bg-slate-900">
+        </div>
+        <div class="flex items-center justify-between border-b border-white/10 px-4 py-2 text-[0.64rem] uppercase tracking-[0.14em] text-slate-500">
+            <span>Ctrl / Cmd + K</span>
+            <span>Esc to close</span>
+        </div>
+        <div id="command-palette-results" class="max-h-[60vh] overflow-y-auto p-2"></div>
     </div>
 
     <script>
@@ -1052,6 +1066,325 @@
                 }
             });
             return { groups, labels };
+        }
+
+        let commandPaletteOpen = false;
+        let commandPaletteIndex = 0;
+        let commandPaletteItems = [];
+
+        function setCheckboxState(id, value) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.checked === value) return;
+            el.checked = value;
+            el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+
+        function setSelectState(id, value) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.value === value) return;
+            el.value = value;
+            el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+
+        function ensurePhysicsRunning() {
+            if (!isSimulating) {
+                isSimulating = true;
+                const pauseBtn = document.getElementById("btn-pause");
+                if (pauseBtn) pauseBtn.textContent = "Pause Physics";
+            }
+        }
+
+        function scoreQueryMatch(text, query) {
+            if (!query) return 1;
+            const hay = (text || "").toLowerCase();
+            const q = query.toLowerCase();
+            if (!hay.includes(q)) return 0;
+            if (hay === q) return 100;
+            if (hay.startsWith(q)) return 80;
+            return Math.max(10, 60 - hay.indexOf(q));
+        }
+
+        function findNodeMatches(query, limit = 8) {
+            const q = query.trim().toLowerCase();
+            if (!q) return [];
+            return nodes.map(n => {
+                const hay = `${n.name} ${n.file || ""} ${n.id}`;
+                const score = scoreQueryMatch(hay, q) + (n.git_modified ? 3 : 0) + (selectedNode && selectedNode.id === n.id ? 2 : 0);
+                return { node: n, score };
+            }).filter(entry => entry.score > 0).sort((a, b) => b.score - a.score).slice(0, limit);
+        }
+
+        function findBestNodeMatch(query) {
+            const match = findNodeMatches(query, 1)[0];
+            return match ? match.node : null;
+        }
+
+        function parsePaletteCommand(query) {
+            const raw = query.trim();
+            const lower = raw.toLowerCase();
+            if (!raw) return null;
+
+            if (lower.startsWith("path ")) {
+                const body = raw.slice(5).trim();
+                const splitParts = body.split(/\s*(?:->| to )\s*/i).filter(Boolean);
+                let startText = "";
+                let endText = "";
+                if (splitParts.length >= 2) {
+                    [startText, endText] = splitParts;
+                } else {
+                    const tokens = body.split(/\s+/);
+                    if (tokens.length >= 2) {
+                        startText = tokens.slice(0, Math.ceil(tokens.length / 2)).join(" ");
+                        endText = tokens.slice(Math.ceil(tokens.length / 2)).join(" ");
+                    }
+                }
+
+                if (startText && endText) {
+                    const startNode = findBestNodeMatch(startText);
+                    const endNode = findBestNodeMatch(endText);
+                    if (startNode && endNode) {
+                        return {
+                            type: "command",
+                            label: `Trace path: ${startNode.name} -> ${endNode.name}`,
+                            description: "Show the shortest path between two nodes",
+                            action: () => {
+                                window.setPathStart(startNode.id);
+                                window.setPathEnd(endNode.id);
+                                closeCommandPalette();
+                            }
+                        };
+                    }
+                }
+            }
+
+            if (lower.startsWith("depth ")) {
+                const value = raw.slice(6).trim().toLowerCase();
+                if (["1", "2", "3", "all"].includes(value)) {
+                    return {
+                        type: "command",
+                        label: `Set impact depth: ${value}`,
+                        description: "Limit focus mode to a fixed radius",
+                        action: () => {
+                            applyFocusDepthLimit(value);
+                            closeCommandPalette();
+                        }
+                    };
+                }
+            }
+
+            if (lower.startsWith("group ")) {
+                const value = raw.slice(6).trim().toLowerCase();
+                if (["file", "folder", "package"].includes(value)) {
+                    return {
+                        type: "command",
+                        label: `Group by ${value}`,
+                        description: "Collapse nodes using a different cluster key",
+                        action: () => {
+                            applyGroupingMode(value);
+                            setSelectState("cluster-mode-select", value);
+                            closeCommandPalette();
+                        }
+                    };
+                }
+            }
+
+            if (lower.startsWith("search ")) {
+                const term = raw.slice(7).trim();
+                if (term) {
+                    return {
+                        type: "command",
+                        label: `Search "${term}"`,
+                        description: "Filter the node list and switch to search",
+                        action: () => {
+                            switchLeftTab("search");
+                            const input = document.getElementById("search-input");
+                            if (input) {
+                                input.value = term;
+                                input.dispatchEvent(new Event("input", { bubbles: true }));
+                            }
+                            closeCommandPalette();
+                        }
+                    };
+                }
+            }
+
+            if (lower.startsWith("node ")) {
+                const term = raw.slice(5).trim();
+                const node = findBestNodeMatch(term);
+                if (node) {
+                    return {
+                        type: "command",
+                        label: `Open node "${node.name}"`,
+                        description: "Jump to the selected node",
+                        action: () => {
+                            switchLeftTab("search");
+                            selectNodeById(node.id);
+                            closeCommandPalette();
+                        }
+                    };
+                }
+            }
+
+            const literalMap = {
+                "pause": () => document.getElementById("btn-pause")?.click(),
+                "resume": () => document.getElementById("btn-pause")?.click(),
+                "reset": () => document.getElementById("btn-reset")?.click(),
+                "layout": () => document.getElementById("btn-layout")?.click(),
+                "export": () => document.getElementById("btn-export")?.click(),
+                "clear path": () => window.clearPathTracing(),
+                "focus on": () => setCheckboxState("focus-mode-cb", true),
+                "focus off": () => setCheckboxState("focus-mode-cb", false),
+                "git on": () => setCheckboxState("git-impact-cb", true),
+                "git off": () => setCheckboxState("git-impact-cb", false),
+                "hide unresolved on": () => setCheckboxState("hide-unresolved-cb", true),
+                "hide unresolved off": () => setCheckboxState("hide-unresolved-cb", false)
+            };
+
+            if (literalMap[lower]) {
+                return {
+                    type: "command",
+                    label: raw[0].toUpperCase() + raw.slice(1),
+                    description: "Run a graph action",
+                    action: () => {
+                        literalMap[lower]();
+                        closeCommandPalette();
+                    }
+                };
+            }
+
+            return null;
+        }
+
+        function buildCommandPaletteItems(query) {
+            const q = query.trim().toLowerCase();
+            const items = [];
+            const direct = parsePaletteCommand(query);
+            if (direct) items.push(direct);
+
+            const staticCommands = [
+            { label: "Search nodes", description: "Open a search prompt for files or symbols", keywords: ["search", "find"], keepOpen: true, action: () => openCommandPalette("search ") },
+            { label: "Jump to node", description: "Open a node picker prompt", keywords: ["node", "jump"], keepOpen: true, action: () => openCommandPalette("node ") },
+            { label: "Open search tab", description: "Switch to the left search panel", keywords: ["search", "find", "panel"], action: () => switchLeftTab("search") },
+                { label: "Open Git risk tab", description: "Switch to the Git impact panel", keywords: ["git", "risk", "impact"], action: () => switchLeftTab("git") },
+                { label: "Toggle focus mode", description: "Restrict the graph to the selected node neighborhood", keywords: ["focus"], action: () => setCheckboxState("focus-mode-cb", !document.getElementById("focus-mode-cb").checked) },
+                { label: "Toggle unresolved links", description: "Show or hide unresolved nodes", keywords: ["unresolved"], action: () => setCheckboxState("hide-unresolved-cb", !document.getElementById("hide-unresolved-cb").checked) },
+                { label: "Set depth: 1 hop", description: "Show a tighter impact radius", keywords: ["depth", "1"], action: () => applyFocusDepthLimit("1") },
+                { label: "Set depth: 2 hops", description: "Show the default impact radius", keywords: ["depth", "2"], action: () => applyFocusDepthLimit("2") },
+                { label: "Set depth: 3 hops", description: "Expand the focus radius", keywords: ["depth", "3"], action: () => applyFocusDepthLimit("3") },
+                { label: "Set depth: all hops", description: "Show the full neighborhood", keywords: ["depth", "all"], action: () => applyFocusDepthLimit("all") },
+                { label: "Group by file", description: "Collapse nodes by file path", keywords: ["group", "file"], action: () => { setSelectState("cluster-mode-select", "file"); applyGroupingMode("file"); } },
+                { label: "Group by folder", description: "Collapse nodes by folder", keywords: ["group", "folder"], action: () => { setSelectState("cluster-mode-select", "folder"); applyGroupingMode("folder"); } },
+                { label: "Group by package", description: "Collapse nodes by package root", keywords: ["group", "package"], action: () => { setSelectState("cluster-mode-select", "package"); applyGroupingMode("package"); } },
+                { label: "Trace shortest path", description: "Open the path query prompt", keywords: ["path", "trace"], keepOpen: true, action: () => openCommandPalette("path ") },
+                { label: "Clear path tracing", description: "Remove the active path overlay", keywords: ["clear", "path"], action: () => window.clearPathTracing() },
+                { label: "Toggle physics", description: "Pause or resume the layout engine", keywords: ["pause", "resume", "physics"], action: () => document.getElementById("btn-pause")?.click() },
+                { label: "Reset layout", description: "Randomize node positions", keywords: ["reset", "layout"], action: () => document.getElementById("btn-reset")?.click() },
+                { label: "Switch layout", description: "Toggle swimlane or free layout", keywords: ["layout", "swimlane", "free"], action: () => document.getElementById("btn-layout")?.click() },
+                { label: "Export PNG", description: "Save the current graph as an image", keywords: ["export", "png"], action: () => document.getElementById("btn-export")?.click() }
+            ];
+
+            staticCommands.forEach(cmd => {
+                const hay = `${cmd.label} ${cmd.description} ${(cmd.keywords || []).join(" ")}`.toLowerCase();
+                if (!q || hay.includes(q)) {
+                    items.push({
+                        type: "command",
+                        label: cmd.label,
+                        description: cmd.description,
+                        action: cmd.action
+                    });
+                }
+            });
+
+            if (q) {
+                findNodeMatches(q, 8).forEach(match => {
+                    const n = match.node;
+                    items.push({
+                        type: "node",
+                        label: `Open node: ${n.name}`,
+                        description: n.file ? n.file : "No file path",
+                        action: () => {
+                            switchLeftTab("search");
+                            selectNodeById(n.id);
+                        }
+                    });
+                });
+            }
+
+            return items.slice(0, 12);
+        }
+
+        function renderCommandPalette(query) {
+            const resultsEl = document.getElementById("command-palette-results");
+            if (!resultsEl) return;
+            commandPaletteItems = buildCommandPaletteItems(query);
+            if (commandPaletteIndex >= commandPaletteItems.length) {
+                commandPaletteIndex = Math.max(0, commandPaletteItems.length - 1);
+            }
+
+            if (commandPaletteItems.length === 0) {
+                resultsEl.innerHTML = `<div class="px-4 py-8 text-center text-sm text-slate-500">No matching commands or nodes</div>`;
+                return;
+            }
+
+            resultsEl.innerHTML = commandPaletteItems.map((item, idx) => {
+                const active = idx === commandPaletteIndex;
+                return `
+                    <button type="button" data-command-index="${idx}" class="flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition ${active ? 'border-cyan-400/30 bg-cyan-400/10' : 'border-transparent hover:border-white/10 hover:bg-white/5'}">
+                        <div class="mt-0.5 shrink-0 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.12em] ${item.type === 'node' ? 'text-emerald-200' : 'text-cyan-200'}">${item.type === 'node' ? 'Node' : 'Action'}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="truncate text-[0.9rem] font-semibold text-slate-100">${escapeHtml(item.label)}</div>
+                            <div class="mt-0.5 truncate text-[0.72rem] text-slate-400">${escapeHtml(item.description || "")}</div>
+                        </div>
+                    </button>
+                `;
+            }).join("");
+
+            resultsEl.querySelectorAll("button[data-command-index]").forEach(btn => {
+                const idx = parseInt(btn.getAttribute("data-command-index"), 10);
+                btn.onclick = () => runCommandPaletteItem(idx);
+                btn.onmouseenter = () => {
+                    commandPaletteIndex = idx;
+                    renderCommandPalette(query);
+                };
+            });
+        }
+
+        function runCommandPaletteItem(index) {
+            const item = commandPaletteItems[index];
+            if (!item) return;
+            item.action();
+            if (item.keepOpen) return;
+            closeCommandPalette();
+        }
+
+        function openCommandPalette(prefill = "") {
+            commandPaletteOpen = true;
+            commandPaletteIndex = 0;
+            const backdrop = document.getElementById("command-palette-backdrop");
+            const palette = document.getElementById("command-palette");
+            const input = document.getElementById("command-palette-input");
+            if (backdrop) backdrop.classList.remove("hidden");
+            if (palette) palette.classList.remove("hidden");
+            if (input) {
+                input.value = prefill;
+                renderCommandPalette(prefill);
+                input.focus();
+                if (prefill) {
+                    input.setSelectionRange(prefill.length, prefill.length);
+                } else {
+                    input.select();
+                }
+            }
+        }
+
+        function closeCommandPalette() {
+            commandPaletteOpen = false;
+            const backdrop = document.getElementById("command-palette-backdrop");
+            const palette = document.getElementById("command-palette");
+            if (backdrop) backdrop.classList.add("hidden");
+            if (palette) palette.classList.add("hidden");
         }
 
         // Populate Git Risk / Blast Radius Dashboard
@@ -3386,6 +3719,53 @@
         if (clusterModeSelect) {
             clusterModeSelect.addEventListener("change", (e) => applyGroupingMode(e.target.value));
         }
+        const commandPaletteBtn = document.getElementById("btn-command-palette");
+        const commandPaletteBackdrop = document.getElementById("command-palette-backdrop");
+        const commandPaletteInput = document.getElementById("command-palette-input");
+        if (commandPaletteBtn) {
+            commandPaletteBtn.onclick = () => openCommandPalette();
+        }
+        if (commandPaletteBackdrop) {
+            commandPaletteBackdrop.onclick = () => closeCommandPalette();
+        }
+        if (commandPaletteInput) {
+            commandPaletteInput.addEventListener("input", (e) => {
+                commandPaletteIndex = 0;
+                renderCommandPalette(e.target.value);
+            });
+            commandPaletteInput.addEventListener("keydown", (e) => {
+                if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    commandPaletteIndex = Math.min(commandPaletteIndex + 1, Math.max(0, commandPaletteItems.length - 1));
+                    renderCommandPalette(commandPaletteInput.value);
+                } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    commandPaletteIndex = Math.max(commandPaletteIndex - 1, 0);
+                    renderCommandPalette(commandPaletteInput.value);
+                } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (commandPaletteItems[commandPaletteIndex]) {
+                        runCommandPaletteItem(commandPaletteIndex);
+                    }
+                } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    closeCommandPalette();
+                }
+            });
+        }
+        document.addEventListener("keydown", (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+                e.preventDefault();
+                if (commandPaletteOpen) {
+                    closeCommandPalette();
+                } else {
+                    openCommandPalette();
+                }
+            } else if (e.key === "Escape" && commandPaletteOpen) {
+                e.preventDefault();
+                closeCommandPalette();
+            }
+        });
         if (graphData.selected_node_id) {
             setTimeout(() => {
                 selectNodeById(graphData.selected_node_id);

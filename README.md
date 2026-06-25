@@ -90,6 +90,17 @@ bigi analyze repo1/ repo2/ repo3/ --html org_graph.html
 bigi monitor --html graph.html --log run.log
 ```
 
+## Command palette
+
+Press `Ctrl/Cmd + K` in the graph view to open one place for the main actions:
+
+- search nodes
+- jump to a node
+- trace a path between nodes
+- change depth and grouping
+- toggle focus and Git filters
+- reset, pause, or export the graph
+
 ## Advanced graph views
 
 - Trace the shortest path between two nodes
