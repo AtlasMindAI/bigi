@@ -18,28 +18,33 @@ BiGI shows what breaks before you change the code in any codebase.
 
 </div>
 
-## What BiGI does
+## Features
 
-BiGI scans a repository, builds a dependency graph, and traces downstream impact across:
+BiGI scans a repository and shows what changes affect downstream code.
 
-- Python, R, and shell code
-- automation, build, and workflow files
-- scripts, modules, and source files
-- local folders, GitHub URLs, or multiple repositories
+- Works on any codebase
+- Finds functions, files, scripts, rules, and links between them
+- Traces downstream impact from a change
+- Shows modified files inside the graph
+- Finds the shortest path between two nodes
+- Groups by file, folder, or package
+- Limits focus to 1, 2, 3, or all hops
+- Exports HTML, GraphML, and PR reports
+- Adds a command palette for fast access
+- Supports webcam hand control for pan, zoom, pause, and node selection
 
-Use it to answer questions like:
+## Setup
 
-- What breaks if I change this function, file, or script?
-- Which nodes depend on this one?
-- Which files were modified in this repo?
-- How do I export the graph for review or tooling?
-
-## Install
-
-### pip
+### Fastest way
 
 ```bash
 pip install git+https://github.com/AtlasMindAI/bigi.git
+```
+
+### Check it
+
+```bash
+bigi --help
 ```
 
 ### From source
@@ -50,7 +55,7 @@ cd BiGI
 pip install -e .
 ```
 
-### npx
+### Optional npm wrapper
 
 ```bash
 npx bigi --help
@@ -90,33 +95,23 @@ bigi analyze repo1/ repo2/ repo3/ --html org_graph.html
 bigi monitor --html graph.html --log run.log
 ```
 
-## Command palette
+## Graph tools
 
-Press `Ctrl/Cmd + K` in the graph view to open one place for the main actions:
+- Command palette with `Ctrl/Cmd + K`
+- Recent commands and pinned commands
+- Single help view for every action
+- Hand control with webcam input
+- Pinch to select a node
+- Open palm to pause or resume the graph
 
-- search nodes
-- jump to a node
-- trace a path between nodes
-- change depth and grouping
-- toggle focus and Git filters
-- reset, pause, export, or use hand control
+## What it does
 
-## Advanced graph views
+BiGI helps answer questions like:
 
-- Trace the shortest path between two nodes
-- Limit focus mode to 1, 2, 3, or all hops
-- Collapse files, folders, or packages into groups
-- Highlight changed files and downstream impact
-- Use the webcam to pan and zoom with hand motion
-- Export the same graph as HTML or GraphML
-
-## Hand control
-
-Open the graph, turn on Hand Control, and use your webcam to pan and zoom the view.
-
-- Move your hand to pan
-- Change hand size to zoom
-- Works best in a well-lit room with camera permission enabled
+- What breaks if I change this function, file, or script?
+- Which nodes depend on this one?
+- Which files were modified in this repo?
+- How do I export the graph for review or tooling?
 
 ## Output
 
@@ -162,6 +157,16 @@ jobs:
 2. Build a directed graph of dependencies.
 3. Trace downstream impact from the item you changed.
 4. Render the result in a self-contained HTML view.
+
+## Hand control
+
+Open the graph, turn on Hand Control, and use your webcam to control the view.
+
+- Move your hand to pan
+- Change hand size to zoom
+- Pinch to select a nearby node
+- Open palm to pause or resume the graph
+- Works best in a well-lit room with camera permission enabled
 
 ## CLI reference
 
